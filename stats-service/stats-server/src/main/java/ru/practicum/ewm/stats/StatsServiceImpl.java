@@ -23,14 +23,14 @@ public class StatsServiceImpl implements StatsService {
     @Override
     public List<ViewStats> get(LocalDateTime start, LocalDateTime end, String[] uris, boolean unique) {
         if (unique && uris != null) {
-            return StatsMapper.toViewStatList(statsRepository.findUniqueStatWithGivenUris(start, end, uris));
+            return statsRepository.findUniqueStatWithGivenUris(start, end, uris);
         }
         if (!unique && uris != null) {
-            return StatsMapper.toViewStatList(statsRepository.findNotUniqueStatWithGivenUris(start, end, uris));
+            return statsRepository.findNotUniqueStatWithGivenUris(start, end, uris);
         }
         if (unique && uris == null) {
-            return StatsMapper.toViewStatList(statsRepository.findUniqueStat(start, end));
+            return statsRepository.findUniqueStat(start, end);
         }
-        return StatsMapper.toViewStatList(statsRepository.findNotUniqueStat(start, end));
+        return statsRepository.findNotUniqueStat(start, end);
     }
 }
