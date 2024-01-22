@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -19,7 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class StatsClientImpl implements StatsClient {
@@ -34,7 +32,11 @@ public class StatsClientImpl implements StatsClient {
     }
 
     public void saveEndpoint(EndpointHit endpointHit) {
-        makeAndSendRequest(HttpMethod.POST, "/hit", null, endpointHit);
+        try {
+            rest.exchange("/hit", HttpMethod.POST, new HttpEntity<>(endpointHit, defaultHeaders()), Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Произошла ошибка при обращении к сервису статистики.", e.getCause());
+        }
     }
 
     public List<ViewStats> findStatistic(ViewStatsRequest request) {
@@ -52,26 +54,14 @@ public class StatsClientImpl implements StatsClient {
         if (request.getUnique() != null) {
             parameters.put("unique", request.getUnique());
         }
-        List<ViewStats> viewStats = (List<ViewStats>) makeAndSendRequest(HttpMethod.GET, "/stats",
-                parameters, null).getBody();
-        return viewStats;
-    }
-
-    private <T> ResponseEntity<Object> makeAndSendRequest(HttpMethod method, String path,
-                                                          @Nullable Map<String, Object> parameters, @Nullable T body) {
-        HttpEntity<T> requestEntity = new HttpEntity<>(body, defaultHeaders());
-
         ResponseEntity<Object> statsServerResponse;
         try {
-            if (parameters != null) {
-                statsServerResponse = rest.exchange(path, method, requestEntity, Object.class, parameters);
-            } else {
-                statsServerResponse = rest.exchange(path, method, requestEntity, Object.class);
-            }
+            statsServerResponse = rest.exchange("/stats", HttpMethod.GET,
+                    new HttpEntity<>(null, defaultHeaders()), Object.class, parameters);
         } catch (Exception e) {
-            return ResponseEntity.of(Optional.of(e.getCause()));
+            throw new RuntimeException("Произошла ошибка при обращении к сервису статистики.", e.getCause());
         }
-        return prepareGatewayResponse(statsServerResponse);
+        return (List<ViewStats>) statsServerResponse.getBody();
     }
 
     private HttpHeaders defaultHeaders() {
@@ -79,20 +69,6 @@ public class StatsClientImpl implements StatsClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         return headers;
-    }
-
-    private ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response;
-        }
-
-        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(response.getStatusCode());
-
-        if (response.hasBody()) {
-            return responseBuilder.body(response.getBody());
-        }
-
-        return responseBuilder.build();
     }
 
     private String encodeTime(LocalDateTime time) {
