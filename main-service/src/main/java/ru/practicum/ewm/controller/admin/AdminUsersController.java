@@ -22,8 +22,8 @@ public class AdminUsersController {
 
     @GetMapping
     public List<UserDto> getUsers(@RequestParam int[] ids,
-                                       @RequestParam(defaultValue = "0") int from,
-                                       @RequestParam(defaultValue = "10") int size) {
+                                  @RequestParam(defaultValue = "0") int from,
+                                  @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на получение информации о пользователях.");
         PageRequest page = PageRequest.of(from / size, size);
         List<UserDto> foundUsers = adminUsersService.getUsers(ids, page);

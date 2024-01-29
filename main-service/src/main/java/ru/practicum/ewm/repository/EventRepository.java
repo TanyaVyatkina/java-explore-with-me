@@ -43,21 +43,21 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
     List<Event> searchFutureEvents(@Param("text") String text, @Param("categories") Integer[] categories,
                                    @Param("paid") Boolean paid, @Param("now") LocalDateTime now, Pageable page);
 
-
-    ////доделать Запросы
     @Query("select e " +
             "from Event as e " +
             "where (lower(e.annotation) like lower(concat('%', :text,'%')) or lower(e.description) like lower(concat('%', :text,'%'))) " +
             "and e.category.id in :categories and e.paid = :paid " +
-            "and e.eventDate between :rangeStart and :rangeEnd")
-    List<Event> searchOnlyAvailiableEventsWithDates(@Param("text") String text, @Param("categories") Integer[] categories,
-                                      @Param("paid") Boolean paid, @Param("rangeStart") LocalDateTime rangeStart,
-                                      @Param("rangeEnd") LocalDateTime rangeEnd, Pageable page);
+            "and e.eventDate between :rangeStart and :rangeEnd " +
+            "and e.participantLimit > (select count(p) from ParticipationRequest p where p.event.id = e.id and p.status = CONFIRMED)")
+    List<Event> searchOnlyAvailableEventsWithDates(@Param("text") String text, @Param("categories") Integer[] categories,
+                                                   @Param("paid") Boolean paid, @Param("rangeStart") LocalDateTime rangeStart,
+                                                   @Param("rangeEnd") LocalDateTime rangeEnd, Pageable page);
 
     @Query("select e " +
             "from Event as e " +
             "where (lower(e.annotation) like lower(concat('%', :text,'%')) or lower(e.description) like lower(concat('%', :text,'%'))) " +
-            "and e.category.id in :categories and e.paid = :paid and e.eventDate > :now")
-    List<Event> searchOnlyAvailiableFutureEvents(@Param("text") String text, @Param("categories") Integer[] categories,
-                                   @Param("paid") Boolean paid, @Param("now") LocalDateTime now, Pageable page);
+            "and e.category.id in :categories and e.paid = :paid and e.eventDate > :now " +
+            "and e.participantLimit > (select count(p) from ParticipationRequest p where p.event.id = e.id and p.status = CONFIRMED)")
+    List<Event> searchOnlyAvailableFutureEvents(@Param("text") String text, @Param("categories") Integer[] categories,
+                                                @Param("paid") Boolean paid, @Param("now") LocalDateTime now, Pageable page);
 }

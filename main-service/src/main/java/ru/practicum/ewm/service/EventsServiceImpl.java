@@ -32,13 +32,13 @@ public class EventsServiceImpl implements EventsService {
         List<Event> events;
         if (rangeStart == null && rangeEnd == null) {
             if (onlyAvailable) {
-                events = eventRepository.searchOnlyAvailiableFutureEvents(text, categories, paid, LocalDateTime.now(), page);
+                events = eventRepository.searchOnlyAvailableFutureEvents(text, categories, paid, LocalDateTime.now(), page);
             } else {
                 events = eventRepository.searchFutureEvents(text, categories, paid, LocalDateTime.now(), page);
             }
         } else {
             if (onlyAvailable) {
-                events = eventRepository.searchOnlyAvailiableEventsWithDates(text, categories, paid, rangeStart, rangeEnd, page);
+                events = eventRepository.searchOnlyAvailableEventsWithDates(text, categories, paid, rangeStart, rangeEnd, page);
             } else {
                 events = eventRepository.searchEventsWithDates(text, categories, paid, rangeStart, rangeEnd, page);
             }

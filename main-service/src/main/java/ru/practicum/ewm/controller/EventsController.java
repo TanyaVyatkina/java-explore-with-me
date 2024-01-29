@@ -6,8 +6,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.client.StatsClient;
-import ru.practicum.ewm.client.ViewStatsRequest;
-import ru.practicum.ewm.dto.*;
+import ru.practicum.ewm.dto.EndpointHit;
+import ru.practicum.ewm.dto.EventFullDto;
+import ru.practicum.ewm.dto.EventShortDto;
+import ru.practicum.ewm.dto.SortType;
 import ru.practicum.ewm.service.EventsService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -15,9 +17,6 @@ import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/events")

@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.service.CompilationsService;
 import ru.practicum.ewm.dto.CompilationDto;
+import ru.practicum.ewm.service.CompilationsService;
 
 import java.util.List;
 
