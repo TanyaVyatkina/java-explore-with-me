@@ -3,15 +3,13 @@ package ru.practicum.ewm.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
 @Getter
 @Setter
 public class NewCategoryDto {
     @NotBlank
-    @Max(50)
-    @Min(1)
+    @Size(min = 1, max = 50)
     String name;
 }

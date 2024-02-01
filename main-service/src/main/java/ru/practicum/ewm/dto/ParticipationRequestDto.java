@@ -14,5 +14,5 @@ public class ParticipationRequestDto {
     private LocalDateTime created;
     private int event;
     private int requester;
-    private RequestStatus status;
+    private ParticipationRequestStatus status;
 }

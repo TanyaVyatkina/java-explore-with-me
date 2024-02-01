@@ -17,8 +17,13 @@ public class CompilationsServiceImpl implements CompilationsService {
     private final CompilationRepository compilationRepository;
 
     @Override
-    public List<CompilationDto> searchCompilations(boolean pinned, PageRequest page) {
-        List<Compilation> compilations = compilationRepository.findByPinned(pinned, page);
+    public List<CompilationDto> searchCompilations(Boolean pinned, PageRequest page) {
+        List<Compilation> compilations;
+        if (pinned != null) {
+            compilations = compilationRepository.findByPinned(pinned, page);
+        } else {
+            compilations = compilationRepository.findAll(page).getContent();
+        }
         return CompilationMapper.toDtoList(compilations);
     }
 

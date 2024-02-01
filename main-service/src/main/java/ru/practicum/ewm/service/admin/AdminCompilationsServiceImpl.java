@@ -13,7 +13,7 @@ import ru.practicum.ewm.mapper.CompilationMapper;
 import ru.practicum.ewm.repository.CompilationRepository;
 import ru.practicum.ewm.repository.EventRepository;
 
-import java.util.Collection;
+import javax.validation.ValidationException;
 import java.util.HashSet;
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class AdminCompilationsServiceImpl implements AdminCompilationsService {
         if (compilationDto.getEvents() != null) {
             events = eventRepository.findByIdIn(compilationDto.getEvents());
         }
-        Compilation compilation = CompilationMapper.toEntity(compilationDto, new HashSet<>(events));
+        Compilation compilation = CompilationMapper.toEntity(compilationDto, events);
         compilation = compilationRepository.save(compilation);
         return CompilationMapper.toDto(compilation);
     }
@@ -41,21 +41,33 @@ public class AdminCompilationsServiceImpl implements AdminCompilationsService {
 
     @Override
     public CompilationDto updateCompilation(int compId, UpdateCompilationRequest request) {
+        validateUpdateCompilationRequest(request);
         Compilation compilation = checkExist(compId);
-        compilation.setPinned(request.isPinned());
-        compilation.setTitle(request.getTitle());
-
+        if (request.getTitle() != null) {
+            compilation.setTitle(request.getTitle());
+        }
+        if (request.getPinned() != null) {
+            compilation.setPinned(request.getPinned());
+        }
         if (request.getEvents() == null) {
             compilation.setEvents(null);
         } else {
             List<Event> newEvents = eventRepository.findByIdIn(request.getEvents());
             compilation.setEvents(new HashSet<>(newEvents));
         }
+        compilationRepository.save(compilation);
         return CompilationMapper.toDto(compilation);
     }
 
     private Compilation checkExist(int compId) {
         return compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Подборка с id = " + compId + " не найдена."));
+    }
+
+    private void validateUpdateCompilationRequest(UpdateCompilationRequest request) {
+        String title = request.getTitle();
+        if (title !=null && (title.isBlank() || title.length() > 50)) {
+            throw new ValidationException("Поле title должно быть в диапазоне от 1 до 50.");
+        }
     }
 }

@@ -9,6 +9,6 @@ import java.util.List;
 @Setter
 public class UpdateCompilationRequest {
     private List<Integer> events;
-    private boolean pinned;
+    private Boolean pinned;
     private String title;
 }

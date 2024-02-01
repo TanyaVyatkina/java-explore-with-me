@@ -1,14 +1,17 @@
 package ru.practicum.ewm.service.admin;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import ru.practicum.ewm.dto.AdminStateAction;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
-import ru.practicum.ewm.dto.StateAction;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
 import ru.practicum.ewm.entity.Category;
 import ru.practicum.ewm.entity.Event;
+import ru.practicum.ewm.entity.QEvent;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.mapper.EventMapper;
@@ -17,6 +20,7 @@ import ru.practicum.ewm.repository.EventRepository;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -24,33 +28,56 @@ import java.util.List;
 public class AdminEventsServiceImpl implements AdminEventsService {
     private final EventRepository eventRepository;
     private final CategoryRepository categoryRepository;
+    private final EventMapper eventMapper;
 
     @Override
-    public List<EventFullDto> searchEvents(int[] users, String[] states, int[] categories, LocalDateTime rangeStart,
-                                           LocalDateTime rangeEnd, PageRequest page) {
-        List<Event> events = eventRepository.searchEventsByAdmin(users, states, categories, rangeStart, rangeEnd, page);
-        return EventMapper.toFullDtoList(events);
+    public List<EventFullDto> searchEvents(List<Integer> users, List<EventState> states, List<Integer> categories,
+                                           LocalDateTime rangeStart, LocalDateTime rangeEnd, PageRequest page) {
+        QEvent event = QEvent.event;
+        List<BooleanExpression> queryConditions = new ArrayList<>();
+        if (users != null) {
+            queryConditions.add(event.initiator.id.in(users));
+        }
+        if (states != null) {
+            queryConditions.add(event.state.in(states));
+        }
+        if (categories != null) {
+            queryConditions.add(event.category.id.in(categories));
+        }
+        if (rangeStart != null) {
+            queryConditions.add(event.eventDate.after(rangeStart));
+        }
+        if (rangeEnd != null) {
+            queryConditions.add(event.eventDate.before(rangeEnd));
+        }
+        BooleanExpression conditions = Expressions.allOf(queryConditions.toArray(new BooleanExpression[queryConditions.size()]));
+
+        if (queryConditions.isEmpty()) {
+            return eventMapper.toFullDtoList(eventRepository.findAll(page).getContent());
+        }
+        return eventMapper.toFullDtoList(eventRepository.findAll(conditions, page).getContent());
     }
 
     @Override
     public EventFullDto updateEvent(int eventId, UpdateEventAdminRequest request) {
+        validateUpdateEventAdminRequest(request);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId));
-        if (StateAction.valueOf(request.getStateAction().toUpperCase()).equals(StateAction.PUBLISH_EVENT)) {
+        if (AdminStateAction.PUBLISH_EVENT.equals(request.getStateAction())) {
             if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDateTime.now().plusHours(1))
                     || request.getEventDate() == null && event.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
                 throw new ConflictException("Дата начала изменяемого события должна быть не ранее чем за час" +
                         " от даты публикации.");
             } else {
                 if (!EventState.PENDING.equals(event.getState())) {
-                    throw new ConflictException("Cобытие можно публиковать, только если оно в состоянии ожидания публикации.");
+                    throw new ConflictException("Событие можно публиковать, только если оно в состоянии ожидания публикации.");
                 }
                 event.setState(EventState.PUBLISHED);
                 event.setPublishedOn(LocalDateTime.now());
             }
         } else {
             if (EventState.PUBLISHED.equals(event.getState())) {
-                throw new ConflictException("Cобытие можно отклонить, только если оно еще не опубликовано.");
+                throw new ConflictException("Событие можно отклонить, только если оно еще не опубликовано.");
             }
             event.setState(EventState.CANCELED);
         }
@@ -86,6 +113,25 @@ public class AdminEventsServiceImpl implements AdminEventsService {
             event.setCategory(newCat);
         }
         eventRepository.save(event);
-        return EventMapper.toFullDto(event);
+        return eventMapper.toFullDto(event);
+    }
+
+    private void validateUpdateEventAdminRequest(UpdateEventAdminRequest request) {
+        String annotation = request.getAnnotation();
+        if (annotation != null && (annotation.length() < 20 || annotation.length() > 2000)) {
+            throw new ValidationException("Размер annotation должен находиться от 20 до 2000.");
+        }
+        String description = request.getDescription();
+        if (description != null && (description.length() < 20 || description.length() > 7000)) {
+            throw new ValidationException("Размер description должен находиться от 20 до 7000.");
+        }
+        String title = request.getTitle();
+        if (title != null && (title.length() < 3 || title.length() > 120)) {
+            throw new ValidationException("Размер title должен находиться от 3 до 120.");
+        }
+        LocalDateTime eventDate = request.getEventDate();
+        if (eventDate != null && eventDate.isBefore(LocalDateTime.now())) {
+            throw new ValidationException("Дата события не может быть в прошлом.");
+        }
     }
 }

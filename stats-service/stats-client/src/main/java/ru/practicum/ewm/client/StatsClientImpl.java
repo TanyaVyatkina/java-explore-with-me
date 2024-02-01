@@ -1,9 +1,13 @@
 package ru.practicum.ewm.client;
 
+import io.micrometer.core.instrument.config.validate.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,6 +19,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,14 +59,17 @@ public class StatsClientImpl implements StatsClient {
         if (request.getUnique() != null) {
             parameters.put("unique", request.getUnique());
         }
-        ResponseEntity<Object> statsServerResponse;
+        List<ViewStats> stats;
         try {
-            statsServerResponse = rest.exchange("/stats", HttpMethod.GET,
-                    new HttpEntity<>(null, defaultHeaders()), Object.class, parameters);
+            stats = Arrays.asList(rest.getForEntity("/stats?start={start}&end={end}&uris=" +
+                            String.join("&uris=", request.getUris()) + "&unique={unique}",
+                    ViewStats[].class, parameters).getBody());
+        } catch (ValidationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Произошла ошибка при обращении к сервису статистики.", e.getCause());
+            throw new RuntimeException("Произошла ошибка при обращении к сервису статистики.", e);
         }
-        return (List<ViewStats>) statsServerResponse.getBody();
+        return stats;
     }
 
     private HttpHeaders defaultHeaders() {

@@ -2,10 +2,11 @@ package ru.practicum.ewm.controller.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.service.user.UserRequestsService;
 import ru.practicum.ewm.dto.ParticipationRequestDto;
+import ru.practicum.ewm.service.user.UserRequestsService;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class UserRequestsController {
     }
 
     @PostMapping("/{userId}/requests")
+    @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto addUserRequest(@PathVariable int userId, @RequestParam int eventId) {
         log.debug("Пришел запрос на добавление пользователя {} на участие в событии {}.", userId, eventId);
         ParticipationRequestDto addedEvent = userRequestsService.addUserRequest(userId, eventId);
@@ -34,7 +36,7 @@ public class UserRequestsController {
     }
 
     @PatchMapping("/{userId}/requests/{requestId}/cancel")
-    public ParticipationRequestDto cancelUserRequest(@PathVariable int userId, @RequestParam int requestId) {
+    public ParticipationRequestDto cancelUserRequest(@PathVariable int userId, @PathVariable int requestId) {
         log.debug("Пришел запрос на отмену запроса участия в событии {} от пользователя {}.", requestId, userId);
         ParticipationRequestDto canceledRequest = userRequestsService.cancelUserRequest(userId, requestId);
         log.debug("Заявка отменена.");

@@ -19,7 +19,7 @@ public class CompilationsController {
     private final CompilationsService compilationsService;
 
     @GetMapping
-    public List<CompilationDto> searchCompilations(@RequestParam boolean pinned,
+    public List<CompilationDto> searchCompilations(@RequestParam(required = false) Boolean pinned,
                                                    @RequestParam(defaultValue = "0") int from,
                                                    @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на поиск подборок.");

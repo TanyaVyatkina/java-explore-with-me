@@ -3,11 +3,13 @@ package ru.practicum.ewm.controller.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.service.user.UsersEventsService;
 import ru.practicum.ewm.dto.*;
+import ru.practicum.ewm.service.user.UsersEventsService;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -17,8 +19,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UsersEventsController {
     private final UsersEventsService usersEventsService;
+
     @GetMapping("/{userId}/events")
-    public List<EventShortDto> getUserEvents(@PathVariable int userId, @RequestParam int from, @RequestParam int size) {
+    public List<EventShortDto> getUserEvents(@PathVariable int userId, @RequestParam(defaultValue = "0") int from, @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на получение событий, добавленных пользователем: {}.", userId);
         PageRequest page = PageRequest.of(from / size, size);
         List<EventShortDto> foundEvents = usersEventsService.getUserEvents(userId, page);
@@ -27,9 +30,10 @@ public class UsersEventsController {
     }
 
     @PostMapping("/{userId}/events")
-    public EventShortDto addUserEvent(@PathVariable int userId, @RequestBody NewEventDto eventDto) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public EventFullDto addUserEvent(@PathVariable int userId, @RequestBody @Valid NewEventDto eventDto) {
         log.debug("Пришел запрос на добавление события пользователем: {}.", userId);
-        EventShortDto addedEvent = usersEventsService.addUserEvent(userId, eventDto);
+        EventFullDto addedEvent = usersEventsService.addUserEvent(userId, eventDto);
         log.debug("Добавлено событие: {}", addedEvent);
         return addedEvent;
     }
@@ -43,13 +47,14 @@ public class UsersEventsController {
     }
 
     @PatchMapping("/{userId}/events/{eventId}")
-    public EventFullDto updateUserEvent(@PathVariable int userId, @PathVariable int eventId,
-                                     @RequestBody UpdateEventUserRequest request) {
+    public EventFullDto updateUserEvent(@PathVariable Integer userId, @PathVariable Integer eventId,
+                                        @RequestBody UpdateEventUserRequest request) {
         log.debug("Пришел запрос на изменение события {} пользователя  {}.", eventId, userId);
         EventFullDto foundEvent = usersEventsService.updateUserEvent(userId, eventId, request);
         log.debug("Событие изменено.");
         return foundEvent;
     }
+
     @GetMapping("/{userId}/events/{eventId}/requests")
     public List<ParticipationRequestDto> getUserEventRequests(@PathVariable int userId, @PathVariable int eventId) {
         log.debug("Пришел запрос на получение на получение информации о запросах на участие в событии {} " +
@@ -61,7 +66,7 @@ public class UsersEventsController {
 
     @PatchMapping("/{userId}/events/{eventId}/requests")
     public EventRequestStatusUpdateResult updateRequestsStatuses(@PathVariable int userId, @PathVariable int eventId,
-                                        @RequestBody EventRequestStatusUpdateRequest request) {
+                                                                 @RequestBody EventRequestStatusUpdateRequest request) {
         log.debug("Пришел запрос на изменение статуса заявок события {} пользователя  {}.", eventId, userId);
         EventRequestStatusUpdateResult updateRequestsResult = usersEventsService.updateRequestsStatuses(userId, eventId, request);
         log.debug("Событие изменено.");

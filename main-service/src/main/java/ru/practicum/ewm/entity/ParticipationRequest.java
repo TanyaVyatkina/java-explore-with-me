@@ -2,7 +2,7 @@ package ru.practicum.ewm.entity;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.practicum.ewm.dto.RequestStatus;
+import ru.practicum.ewm.dto.ParticipationRequestStatus;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -21,5 +21,5 @@ public class ParticipationRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     private User requester;
     @Enumerated(EnumType.STRING)
-    private RequestStatus status;
+    private ParticipationRequestStatus status;
 }

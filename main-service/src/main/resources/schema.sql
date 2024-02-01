@@ -51,5 +51,7 @@ CREATE TABLE IF NOT EXISTS participation_request(
 
 CREATE TABLE IF NOT EXISTS compilation_event(
    compilation_id INT,
-   event_id INT
+   event_id INT,
+   CONSTRAINT fk_compilation_event_to_compilation FOREIGN KEY(compilation_id) REFERENCES compilation(id),
+   CONSTRAINT fk_compilation_event_to_event FOREIGN KEY(event_id) REFERENCES event(id)
 );

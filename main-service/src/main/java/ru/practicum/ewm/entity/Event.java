@@ -5,6 +5,7 @@ import lombok.Setter;
 import ru.practicum.ewm.dto.EventState;
 
 import javax.persistence.*;
+import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class Event {
     private Category category;
     @Column(name = "created_on")
     private LocalDateTime createdOn;
+    @Size(min = 1, max = 7000)
     private String description;
     @Column(name = "event_date")
     private LocalDateTime eventDate;
@@ -39,8 +41,8 @@ public class Event {
     private EventState state;
     private String title;
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name="compilation_event",
-            joinColumns=  @JoinColumn(name="event_id", referencedColumnName="id"),
-            inverseJoinColumns= @JoinColumn(name="compilation_id", referencedColumnName="id"))
+    @JoinTable(name = "compilation_event",
+            joinColumns = @JoinColumn(name = "event_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "compilation_id", referencedColumnName = "id"))
     private List<Compilation> compilations;
 }

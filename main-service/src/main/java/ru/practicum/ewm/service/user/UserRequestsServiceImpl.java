@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.ParticipationRequestDto;
-import ru.practicum.ewm.dto.RequestStatus;
+import ru.practicum.ewm.dto.ParticipationRequestStatus;
 import ru.practicum.ewm.entity.Event;
 import ru.practicum.ewm.entity.ParticipationRequest;
 import ru.practicum.ewm.entity.User;
@@ -35,9 +35,9 @@ public class UserRequestsServiceImpl implements UserRequestsService {
 
     @Override
     public ParticipationRequestDto addUserRequest(int userId, int eventId) {
-        Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие с id = " + eventId));
-        User user =  userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Не найден пользователь с id = " + userId));
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Инициатор события не может добавить запрос на участие в своём событии.");
@@ -50,19 +50,21 @@ public class UserRequestsServiceImpl implements UserRequestsService {
             throw new ConflictException("Нельзя добавить повторный запрос.");
         }
 
-        int participationRequestCount = participationRequestRepository.countAllByEvent_IdAndStatus(eventId, RequestStatus.CONFIRMED);
-        if (participationRequestCount == event.getParticipantLimit()) {
-            throw new ConflictException("У события достигнут лимит запросов на участие.");
+        if (event.getParticipantLimit() != 0) {
+            int participationRequestCount = participationRequestRepository.countAllByEvent_IdAndStatus(eventId,
+                    ParticipationRequestStatus.CONFIRMED);
+            if (participationRequestCount == event.getParticipantLimit()) {
+                throw new ConflictException("У события достигнут лимит запросов на участие.");
+            }
         }
-
         ParticipationRequest request = new ParticipationRequest();
         request.setEvent(event);
         request.setRequester(user);
         request.setCreated(LocalDateTime.now());
-        if (event.isRequestModeration()) {
-            request.setStatus(RequestStatus.PENDING);
+        if (event.getParticipantLimit() == 0 || !event.isRequestModeration()) {
+            request.setStatus(ParticipationRequestStatus.CONFIRMED);
         } else {
-            request.setStatus(RequestStatus.CONFIRMED);
+            request.setStatus(ParticipationRequestStatus.PENDING);
         }
         request = participationRequestRepository.save(request);
         return ParticipationRequestMapper.toDto(request);
@@ -72,7 +74,7 @@ public class UserRequestsServiceImpl implements UserRequestsService {
     public ParticipationRequestDto cancelUserRequest(int userId, int requestId) {
         ParticipationRequest request = participationRequestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Не найден запрос с id = " + requestId));
-        request.setStatus(RequestStatus.REJECTED);
+        request.setStatus(ParticipationRequestStatus.CANCELED);
         participationRequestRepository.save(request);
         return ParticipationRequestMapper.toDto(request);
     }

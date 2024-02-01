@@ -16,6 +16,6 @@ public class UpdateEventUserRequest {
     private Boolean paid;
     private Integer participantLimit;
     private Boolean requestModeration;
-    private String stateAction;
+    private UserStateAction stateAction;
     private String title;
 }

@@ -3,6 +3,7 @@ package ru.practicum.ewm.repository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import ru.practicum.ewm.entity.Event;
 
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface EventRepository extends JpaRepository<Event, Integer> {
+public interface EventRepository extends JpaRepository<Event, Integer>, QuerydslPredicateExecutor<Event> {
     int countAllByCategory_Id(int catId);
 
     List<Event> findByInitiator_Id(Integer userId, Pageable page);

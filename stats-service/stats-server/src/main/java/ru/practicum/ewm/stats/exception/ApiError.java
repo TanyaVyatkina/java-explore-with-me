@@ -1,4 +1,4 @@
-package ru.practicum.ewm.dto;
+package ru.practicum.ewm.stats.exception;
 
 import lombok.Getter;
 import lombok.Setter;

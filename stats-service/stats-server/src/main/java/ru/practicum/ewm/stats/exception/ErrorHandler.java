@@ -1,4 +1,4 @@
-package ru.practicum.ewm.exception;
+package ru.practicum.ewm.stats.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.practicum.ewm.dto.ApiError;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
@@ -23,33 +22,11 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ApiError handleNotFoundException(final NotFoundException e) {
-        log.error(e.getMessage());
-        return createError(e, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleRuntimeException(final RuntimeException e) {
         log.error(e.getMessage(), e);
         return createError(e, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiError handleDataIntegrityViolationException(final DataIntegrityViolationException e) {
-        log.error(e.getMessage());
-        return createError(e, HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiError handleConflictException(final ConflictException e) {
-        log.error(e.getMessage());
-        return createError(e, HttpStatus.CONFLICT);
-    }
-
     ApiError createError(RuntimeException ex, HttpStatus status) {
         ApiError error = new ApiError();
         error.setMessage(ex.getMessage());

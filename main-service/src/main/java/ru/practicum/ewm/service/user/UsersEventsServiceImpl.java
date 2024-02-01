@@ -29,22 +29,24 @@ public class UsersEventsServiceImpl implements UsersEventsService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final ParticipationRequestRepository participationRequestRepository;
+    private final EventMapper eventMapper;
 
     @Override
     public List<EventShortDto> getUserEvents(int userId, PageRequest page) {
         List<Event> events = eventRepository.findByInitiator_Id(userId, page);
-        return EventMapper.toShortDtoList(events);
+        return eventMapper.toShortDtoList(events);
     }
 
     @Override
-    public EventShortDto addUserEvent(int userId, NewEventDto eventDto) {
+    public EventFullDto addUserEvent(int userId, NewEventDto eventDto) {
         checkData(eventDto.getEventDate());
         User initiator = userRepository.findById(userId).get();
         Category category = categoryRepository.findById(eventDto.getCategory())
                 .orElseThrow(() -> new ValidationException("Категория с id = " + eventDto.getCategory()
                         + " не найдена или недоступна."));
-        Event event = EventMapper.toNewEntity(eventDto, initiator, category);
-        return EventMapper.toShortDto(event);
+        Event event = eventMapper.toNewEntity(eventDto, initiator, category);
+        event = eventRepository.save(event);
+        return eventMapper.toFullDto(event);
     }
 
     @Override
@@ -52,11 +54,12 @@ public class UsersEventsServiceImpl implements UsersEventsService {
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId
                         + "пользователя id = " + userId));
-        return EventMapper.toFullDto(event);
+        return eventMapper.toFullDto(event);
     }
 
     @Override
     public EventFullDto updateUserEvent(int userId, int eventId, UpdateEventUserRequest request) {
+        validateUpdateEventUserRequest(request);
         checkData(request.getEventDate());
 
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
@@ -96,8 +99,14 @@ public class UsersEventsServiceImpl implements UsersEventsService {
                             + " не найдена или недоступна."));
             event.setCategory(newCat);
         }
+        if (UserStateAction.SEND_TO_REVIEW.equals(request.getStateAction())) {
+            event.setState(EventState.PENDING);
+        }
+        if (UserStateAction.CANCEL_REVIEW.equals(request.getStateAction())) {
+            event.setState(EventState.CANCELED);
+        }
         eventRepository.save(event);
-        return EventMapper.toFullDto(event);
+        return eventMapper.toFullDto(event);
     }
 
     @Override
@@ -113,7 +122,7 @@ public class UsersEventsServiceImpl implements UsersEventsService {
                         + "пользователя id = " + userId));
         int  participantLimit = event.getParticipantLimit();
         int confirmedRequestsCount = participationRequestRepository.countAllByEvent_IdAndStatus(eventId,
-                RequestStatus.CONFIRMED);
+                ParticipationRequestStatus.CONFIRMED);
         RequestStatus newStatus = request.getStatus();
 
         if (RequestStatus.CONFIRMED.equals(newStatus) && confirmedRequestsCount == participantLimit) {
@@ -126,15 +135,15 @@ public class UsersEventsServiceImpl implements UsersEventsService {
         List<ParticipationRequest> participationRequests = participationRequestRepository.findByIdIn(request.getRequestIds());
         boolean isLimit = false;
         for (ParticipationRequest pr : participationRequests) {
-            if (!RequestStatus.PENDING.equals(pr.getStatus())) {
+            if (!ParticipationRequestStatus.PENDING.equals(pr.getStatus())) {
                 throw new ConflictException("Статус можно изменить только у заявок, находящихся в состоянии ожидания.");
             }
             if (RequestStatus.REJECTED.equals(newStatus) || isLimit) {
-                pr.setStatus(RequestStatus.REJECTED);
+                pr.setStatus(ParticipationRequestStatus.REJECTED);
                 rejectedRequests.add(ParticipationRequestMapper.toDto(pr));
             }
             if (RequestStatus.CONFIRMED.equals(newStatus)) {
-                pr.setStatus(RequestStatus.CONFIRMED);
+                pr.setStatus(ParticipationRequestStatus.CONFIRMED);
                 confirmedRequestsCount++;
                 confirmedRequests.add(ParticipationRequestMapper.toDto(pr));
                 if (confirmedRequestsCount == participantLimit) {
@@ -153,8 +162,23 @@ public class UsersEventsServiceImpl implements UsersEventsService {
     private void checkData(LocalDateTime dateTime) {
         if (dateTime == null) return;
         if (dateTime.isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ConflictException("Field: eventDate. Error: должно содержать дату, которая еще не наступила. Value: "
+            throw new ValidationException("Field: eventDate. Error: должно содержать дату, которая еще не наступила. Value: "
                     + dateTime);
+        }
+    }
+
+    private void validateUpdateEventUserRequest(UpdateEventUserRequest request) {
+        String annotation = request.getAnnotation();
+        if (annotation != null && (annotation.length() < 20 || annotation.length() > 2000)) {
+            throw new ValidationException("Размер annotation должен находиться от 20 до 2000.");
+        }
+        String description = request.getDescription();
+        if (description != null && (description.length() < 20 || description.length() > 7000)) {
+            throw new ValidationException("Размер description должен находиться от 20 до 7000.");
+        }
+        String title = request.getTitle();
+        if (title != null && (title.length() < 3 || title.length() > 120)) {
+            throw new ValidationException("Размер title должен находиться от 3 до 120.");
         }
     }
 }
