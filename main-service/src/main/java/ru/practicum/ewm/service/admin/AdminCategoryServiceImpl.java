@@ -16,6 +16,7 @@ import ru.practicum.ewm.repository.EventRepository;
 public class AdminCategoryServiceImpl implements AdminCategorySevice {
     private final CategoryRepository categoryRepository;
     private final EventRepository eventRepository;
+
     @Override
     public CategoryDto saveCategory(NewCategoryDto newCat) {
         Category category = categoryRepository.save(CategoryMapper.toEntity(newCat));

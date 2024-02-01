@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface CompilationsService {
     List<CompilationDto> searchCompilations(Boolean pinned, PageRequest page);
+
     CompilationDto getCompilation(int compId);
 }

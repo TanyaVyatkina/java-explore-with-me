@@ -3,7 +3,6 @@ package ru.practicum.ewm.service.admin;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.CompilationDto;
-import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.dto.UpdateCompilationRequest;
 import ru.practicum.ewm.entity.Compilation;
@@ -22,6 +21,7 @@ import java.util.List;
 public class AdminCompilationsServiceImpl implements AdminCompilationsService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
+
     @Override
     public CompilationDto saveCompilation(NewCompilationDto compilationDto) {
         List<Event> events = null;
@@ -66,7 +66,7 @@ public class AdminCompilationsServiceImpl implements AdminCompilationsService {
 
     private void validateUpdateCompilationRequest(UpdateCompilationRequest request) {
         String title = request.getTitle();
-        if (title !=null && (title.isBlank() || title.length() > 50)) {
+        if (title != null && (title.isBlank() || title.length() > 50)) {
             throw new ValidationException("Поле title должно быть в диапазоне от 1 до 50.");
         }
     }
