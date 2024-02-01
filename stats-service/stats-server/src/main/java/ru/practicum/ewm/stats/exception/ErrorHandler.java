@@ -1,7 +1,6 @@
 package ru.practicum.ewm.stats.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -27,6 +26,7 @@ public class ErrorHandler {
         log.error(e.getMessage(), e);
         return createError(e, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
     ApiError createError(RuntimeException ex, HttpStatus status) {
         ApiError error = new ApiError();
         error.setMessage(ex.getMessage());
