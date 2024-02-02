@@ -121,7 +121,6 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventFullDto updateEvent(int eventId, UpdateEventAdminRequest request) {
-        validateUpdateEventAdminRequest(request);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId));
         if (AdminStateAction.PUBLISH_EVENT.equals(request.getStateAction())) {
@@ -209,7 +208,6 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventFullDto updateUserEvent(int userId, int eventId, UpdateEventUserRequest request) {
-        validateUpdateEventUserRequest(request);
         checkData(request.getEventDate());
 
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
@@ -315,40 +313,6 @@ public class EventServiceImpl implements EventService {
         if (dateTime.isBefore(LocalDateTime.now().plusHours(2))) {
             throw new ValidationException("Field: eventDate. Error: должно содержать дату, которая еще не наступила. Value: "
                     + dateTime);
-        }
-    }
-
-    private void validateUpdateEventUserRequest(UpdateEventUserRequest request) {
-        String annotation = request.getAnnotation();
-        if (annotation != null && (annotation.length() < 20 || annotation.length() > 2000)) {
-            throw new ValidationException("Размер annotation должен находиться от 20 до 2000.");
-        }
-        String description = request.getDescription();
-        if (description != null && (description.length() < 20 || description.length() > 7000)) {
-            throw new ValidationException("Размер description должен находиться от 20 до 7000.");
-        }
-        String title = request.getTitle();
-        if (title != null && (title.length() < 3 || title.length() > 120)) {
-            throw new ValidationException("Размер title должен находиться от 3 до 120.");
-        }
-    }
-
-    private void validateUpdateEventAdminRequest(UpdateEventAdminRequest request) {
-        String annotation = request.getAnnotation();
-        if (annotation != null && (annotation.length() < 20 || annotation.length() > 2000)) {
-            throw new ValidationException("Размер annotation должен находиться от 20 до 2000.");
-        }
-        String description = request.getDescription();
-        if (description != null && (description.length() < 20 || description.length() > 7000)) {
-            throw new ValidationException("Размер description должен находиться от 20 до 7000.");
-        }
-        String title = request.getTitle();
-        if (title != null && (title.length() < 3 || title.length() > 120)) {
-            throw new ValidationException("Размер title должен находиться от 3 до 120.");
-        }
-        LocalDateTime eventDate = request.getEventDate();
-        if (eventDate != null && eventDate.isBefore(LocalDateTime.now())) {
-            throw new ValidationException("Дата события не может быть в прошлом.");
         }
     }
 

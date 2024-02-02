@@ -3,12 +3,14 @@ package ru.practicum.ewm.controller.admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
 import ru.practicum.ewm.service.EventService;
 
+import javax.validation.Valid;
 import java.net.URLDecoder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/events")
 @Slf4j
+@Validated
 @RequiredArgsConstructor
 public class AdminEventController {
     private final EventService eventService;
@@ -47,7 +50,7 @@ public class AdminEventController {
     }
 
     @PatchMapping("/{eventId}")
-    public EventFullDto updateEvent(@PathVariable int eventId, @RequestBody UpdateEventAdminRequest request) {
+    public EventFullDto updateEvent(@PathVariable int eventId, @RequestBody @Valid UpdateEventAdminRequest request) {
         log.debug("Пришел запрос на изменение события.");
         EventFullDto updatedEvent = eventService.updateEvent(eventId, request);
         log.debug("Изменения сохранены.");

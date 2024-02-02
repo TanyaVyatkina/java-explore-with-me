@@ -48,7 +48,7 @@ public class UserEventController {
 
     @PatchMapping("/{userId}/events/{eventId}")
     public EventFullDto updateUserEvent(@PathVariable Integer userId, @PathVariable Integer eventId,
-                                        @RequestBody UpdateEventUserRequest request) {
+                                        @RequestBody @Valid UpdateEventUserRequest request) {
         log.debug("Пришел запрос на изменение события {} пользователя  {}.", eventId, userId);
         EventFullDto foundEvent = eventsService.updateUserEvent(userId, eventId, request);
         log.debug("Событие изменено.");
