@@ -1,4 +1,4 @@
-package ru.practicum.ewm.service.user;
+package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserRequestsServiceImpl implements UserRequestsService {
+public class UserRequestServiceImpl implements UserRequestService {
     private final ParticipationRequestRepository participationRequestRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;

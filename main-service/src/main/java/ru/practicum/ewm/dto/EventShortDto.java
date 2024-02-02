@@ -11,7 +11,7 @@ public class EventShortDto {
     private Integer id;
     private String annotation;
     private CategoryDto category;
-    private int confirmedRequests;
+    private long confirmedRequests;
     private LocalDateTime eventDate;
     private UserShortDto initiator;
     private boolean paid;

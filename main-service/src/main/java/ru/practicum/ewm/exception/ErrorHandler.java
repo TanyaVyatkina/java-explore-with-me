@@ -10,7 +10,9 @@ import ru.practicum.ewm.dto.ApiError;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -55,7 +57,10 @@ public class ErrorHandler {
         error.setMessage(ex.getMessage());
         error.setTimestamp(LocalDateTime.now());
         error.setStatus(status);
-        error.setErrors(List.of(ex.getStackTrace()));
+        List<String> errors = Arrays.stream(ex.getStackTrace())
+                .map(StackTraceElement::toString)
+                .collect(Collectors.toList());
+        error.setErrors(errors);
         if (ex.getCause() != null) {
             error.setReason(ex.getCause().toString());
         }

@@ -6,7 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.CompilationDto;
-import ru.practicum.ewm.service.CompilationsService;
+import ru.practicum.ewm.service.CompilationService;
 
 import java.util.List;
 
@@ -15,8 +15,8 @@ import java.util.List;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class CompilationsController {
-    private final CompilationsService compilationsService;
+public class CompilationController {
+    private final CompilationService compilationService;
 
     @GetMapping
     public List<CompilationDto> searchCompilations(@RequestParam(required = false) Boolean pinned,
@@ -24,7 +24,7 @@ public class CompilationsController {
                                                    @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на поиск подборок.");
         PageRequest page = PageRequest.of(from / size, size);
-        List<CompilationDto> foundCompilations = compilationsService.searchCompilations(pinned, page);
+        List<CompilationDto> foundCompilations = compilationService.searchCompilations(pinned, page);
         log.debug("Найдены подборки: {}.", foundCompilations);
         return foundCompilations;
     }
@@ -32,7 +32,7 @@ public class CompilationsController {
     @GetMapping("/{compId}")
     public CompilationDto getCompilation(@PathVariable int compId) {
         log.debug("Пришел запрос на поиск подборки: {}.", compId);
-        CompilationDto foundCompilation = compilationsService.getCompilation(compId);
+        CompilationDto foundCompilation = compilationService.getCompilation(compId);
         log.debug("Найдена подборка: {}.", foundCompilation);
         return foundCompilation;
     }

@@ -13,6 +13,6 @@ public class ApiError {
     private HttpStatus status;
     private String message;
     private String reason;
-    private List<StackTraceElement> errors;
+    private List<String> errors;
     private LocalDateTime timestamp;
 }

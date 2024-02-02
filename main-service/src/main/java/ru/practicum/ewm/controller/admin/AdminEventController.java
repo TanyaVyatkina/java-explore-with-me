@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
-import ru.practicum.ewm.service.admin.AdminEventsService;
+import ru.practicum.ewm.service.EventService;
 
 import java.net.URLDecoder;
 import java.time.LocalDateTime;
@@ -18,8 +18,8 @@ import java.util.List;
 @RequestMapping("/admin/events")
 @Slf4j
 @RequiredArgsConstructor
-public class AdminEventsController {
-    private final AdminEventsService adminEventsService;
+public class AdminEventController {
+    private final EventService eventService;
 
     @GetMapping
     public List<EventFullDto> searchEvents(@RequestParam(required = false) List<Integer> users,
@@ -40,7 +40,7 @@ public class AdminEventsController {
         if (rangeEnd != null) {
             end = LocalDateTime.parse(URLDecoder.decode(rangeEnd), formatter);
         }
-        List<EventFullDto> foundEvents = adminEventsService.searchEvents(users, states, categories, start,
+        List<EventFullDto> foundEvents = eventService.searchEventsByAdmin(users, states, categories, start,
                 end, page);
         log.debug("Найдены события: {}.", foundEvents);
         return foundEvents;
@@ -49,7 +49,7 @@ public class AdminEventsController {
     @PatchMapping("/{eventId}")
     public EventFullDto updateEvent(@PathVariable int eventId, @RequestBody UpdateEventAdminRequest request) {
         log.debug("Пришел запрос на изменение события.");
-        EventFullDto updatedEvent = adminEventsService.updateEvent(eventId, request);
+        EventFullDto updatedEvent = eventService.updateEvent(eventId, request);
         log.debug("Изменения сохранены.");
         return updatedEvent;
     }

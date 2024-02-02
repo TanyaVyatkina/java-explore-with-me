@@ -1,14 +1,9 @@
 package ru.practicum.ewm.mapper;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import ru.practicum.ewm.client.StatsClient;
-import ru.practicum.ewm.client.ViewStatsRequest;
 import ru.practicum.ewm.dto.*;
 import ru.practicum.ewm.entity.Category;
 import ru.practicum.ewm.entity.Event;
 import ru.practicum.ewm.entity.User;
-import ru.practicum.ewm.repository.ParticipationRequestRepository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -17,47 +12,47 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Component
-@RequiredArgsConstructor
 public class EventMapper {
-    private final ParticipationRequestRepository participationRequestRepository;
-    private final StatsClient statsClient;
-
-    public EventShortDto toShortDto(Event event) {
+    public static EventShortDto toShortDto(Event event, List<ViewStats> views, int confirmedRequest) {
         EventShortDto shortDto = toShortDtoWithoutViews(event);
-        List<ViewStats> viewStats = findViews(new String[]{"/events/" + event.getId()});
-        if (!viewStats.isEmpty()) {
-            shortDto.setViews(viewStats.get(0).getHits());
+        shortDto.setConfirmedRequests(confirmedRequest);
+        if (!views.isEmpty()) {
+            shortDto.setViews(views.get(0).getHits());
         }
         return shortDto;
     }
 
-    public EventFullDto toFullDto(Event event) {
+    public static EventFullDto toFullDto(Event event, List<ViewStats> views, int confirmedRequest) {
         EventFullDto fullDto = toFullDtoWithoutViews(event);
-        List<ViewStats> viewStats = findViews(new String[]{"/events/" + event.getId()});
-        if (!viewStats.isEmpty()) {
-            fullDto.setViews(viewStats.get(0).getHits());
+        fullDto.setConfirmedRequests(confirmedRequest);
+        if (!views.isEmpty()) {
+            fullDto.setViews(views.get(0).getHits());
         }
         return fullDto;
     }
 
-    public List<EventShortDto> toShortDtoList(Collection<Event> events) {
+    public static List<EventShortDto> toShortDtoList(Collection<Event> events,
+                                                     List<ViewStats> views,
+                                                     List<ParticipationStat> participationStats) {
         List<EventShortDto> dtos = events.stream()
-                .map(this::toShortDtoWithoutViews)
+                .map(EventMapper::toShortDtoWithoutViews)
                 .collect(Collectors.toList());
-        fillViewsToEventShortDtoList(dtos);
+        fillViewsToEventShortDtoList(dtos, views);
+        fillConfirmedRequestsToEventShortDtoList(dtos, participationStats);
         return dtos;
     }
 
-    public List<EventFullDto> toFullDtoList(Collection<Event> events) {
+    public static List<EventFullDto> toFullDtoList(Collection<Event> events, List<ViewStats> views,
+                                                   List<ParticipationStat> participationStats) {
         List<EventFullDto> dtos = events.stream()
-                .map(this::toFullDtoWithoutViews)
+                .map(EventMapper::toFullDtoWithoutViews)
                 .collect(Collectors.toList());
-        fillViewsToEventFullDtoList(dtos);
+        fillViewsToEventFullDtoList(dtos, views);
+        fillConfirmedRequestsToEventFullDtoList(dtos, participationStats);
         return dtos;
     }
 
-    public Event toNewEntity(NewEventDto dto, User initiator, Category category) {
+    public static Event toNewEntity(NewEventDto dto, User initiator, Category category) {
         Event event = new Event();
         event.setAnnotation(dto.getAnnotation());
         event.setDescription(dto.getDescription());
@@ -83,16 +78,15 @@ public class EventMapper {
         return event;
     }
 
-    private EventShortDto toShortDtoWithoutViews(Event event) {
+    private static EventShortDto toShortDtoWithoutViews(Event event) {
         EventShortDto shortDto = new EventShortDto(event.getId(), event.getAnnotation(),
                 event.getEventDate(), event.isPaid(), event.getTitle());
         shortDto.setCategory(CategoryMapper.toDto(event.getCategory()));
         shortDto.setInitiator(UserMapper.toShortDto(event.getInitiator()));
-        shortDto.setConfirmedRequests(findConfirmedRequestCount(event.getId()));
         return shortDto;
     }
 
-    private EventFullDto toFullDtoWithoutViews(Event event) {
+    private static EventFullDto toFullDtoWithoutViews(Event event) {
         EventFullDto fullDto = new EventFullDto();
         fullDto.setId(event.getId());
         fullDto.setAnnotation(event.getAnnotation());
@@ -108,37 +102,44 @@ public class EventMapper {
         fullDto.setRequestModeration(event.isRequestModeration());
         fullDto.setState(event.getState());
         fullDto.setTitle(event.getTitle());
-        fullDto.setConfirmedRequests(findConfirmedRequestCount(event.getId()));
         return fullDto;
     }
 
-    private int findConfirmedRequestCount(int eventId) {
-        return participationRequestRepository.countAllByEvent_IdAndStatus(eventId, ParticipationRequestStatus.CONFIRMED);
-    }
-
-    private void fillViewsToEventShortDtoList(List<EventShortDto> events) {
+    private static void fillViewsToEventShortDtoList(List<EventShortDto> events, List<ViewStats> views) {
         Map<String, EventShortDto> eventsMap = events
                 .stream()
                 .collect(Collectors.toMap(e -> "/events/" + e.getId(), Function.identity()));
-        List<ViewStats> viewStats = findViews(eventsMap.keySet().toArray(new String[eventsMap.size()]));
-        for (ViewStats vs : viewStats) {
+        for (ViewStats vs : views) {
             eventsMap.get(vs.getUri()).setViews(vs.getHits());
         }
     }
 
-    private void fillViewsToEventFullDtoList(List<EventFullDto> events) {
+    private static void fillViewsToEventFullDtoList(List<EventFullDto> events, List<ViewStats> views) {
         Map<String, EventFullDto> eventsMap = events
                 .stream()
                 .collect(Collectors.toMap(e -> "/events/" + e.getId(), Function.identity()));
-        List<ViewStats> viewStats = findViews(eventsMap.keySet().toArray(new String[eventsMap.size()]));
-        for (ViewStats vs : viewStats) {
+        for (ViewStats vs : views) {
             eventsMap.get(vs.getUri()).setViews(vs.getHits());
         }
     }
 
-    private List<ViewStats> findViews(String[] uris) {
-        ViewStatsRequest request = new ViewStatsRequest(LocalDateTime.of(2024, 1, 1, 0, 0),
-                LocalDateTime.now(), uris, true);
-        return statsClient.findStatistic(request);
+    private static void fillConfirmedRequestsToEventShortDtoList(List<EventShortDto> events,
+                                                                 List<ParticipationStat> participationStats) {
+        Map<Integer, EventShortDto> eventsMap = events
+                .stream()
+                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
+        for (ParticipationStat pr : participationStats) {
+            eventsMap.get(pr.getEventId()).setConfirmedRequests(pr.getRequestCount());
+        }
+    }
+
+    private static void fillConfirmedRequestsToEventFullDtoList(List<EventFullDto> events,
+                                                                List<ParticipationStat> participationStats) {
+        Map<Integer, EventFullDto> eventsMap = events
+                .stream()
+                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
+        for (ParticipationStat pr : participationStats) {
+            eventsMap.get(pr.getEventId()).setConfirmedRequests(pr.getRequestCount());
+        }
     }
 }

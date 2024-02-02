@@ -7,7 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.dto.NewCategoryDto;
-import ru.practicum.ewm.service.admin.AdminCategorySevice;
+import ru.practicum.ewm.service.CategoryService;
 
 import javax.validation.Valid;
 
@@ -17,13 +17,13 @@ import javax.validation.Valid;
 @Validated
 @RequiredArgsConstructor
 public class AdminCategoryController {
-    private final AdminCategorySevice adminCategorySevice;
+    private final CategoryService categorySevice;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CategoryDto saveCategory(@RequestBody @Valid NewCategoryDto categoryDto) {
         log.debug("Добавление новой категории.");
-        CategoryDto savedCategory = adminCategorySevice.saveCategory(categoryDto);
+        CategoryDto savedCategory = categorySevice.saveCategoryByAdmin(categoryDto);
         log.debug("Категория сохранена.");
         return savedCategory;
     }
@@ -32,14 +32,14 @@ public class AdminCategoryController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCategory(@PathVariable("catId") int catId) {
         log.debug("Удаление категории: {}.", catId);
-        adminCategorySevice.deleteCategory(catId);
+        categorySevice.deleteCategoryByAdmin(catId);
         log.debug("Категория удалена.");
     }
 
     @PatchMapping("/{catId}")
     public CategoryDto updateCategory(@PathVariable int catId, @RequestBody @Valid NewCategoryDto categoryDto) {
         log.debug("Изменение категории: {}.", catId);
-        CategoryDto updatedCategory = adminCategorySevice.updateCategory(catId, categoryDto);
+        CategoryDto updatedCategory = categorySevice.updateCategoryByAdmin(catId, categoryDto);
         log.debug("Категория изменена.");
         return updatedCategory;
     }

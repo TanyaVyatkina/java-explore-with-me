@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.dto.UpdateCompilationRequest;
-import ru.practicum.ewm.service.admin.AdminCompilationsService;
+import ru.practicum.ewm.service.CompilationService;
 
 import javax.validation.Valid;
 
@@ -18,14 +18,14 @@ import javax.validation.Valid;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class AdminCompilationsController {
-    private final AdminCompilationsService adminCompilationsService;
+public class AdminCompilationController {
+    private final CompilationService compilationService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CompilationDto saveCompilation(@RequestBody @Valid NewCompilationDto compilationDto) {
         log.debug("Добавление новой подборки.");
-        CompilationDto savedCompilation = adminCompilationsService.saveCompilation(compilationDto);
+        CompilationDto savedCompilation = compilationService.saveCompilationByAdmin(compilationDto);
         log.debug("Подборка сохранена.");
         return savedCompilation;
     }
@@ -34,14 +34,14 @@ public class AdminCompilationsController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCompilation(@PathVariable("compId") int compId) {
         log.debug("Удаление подборки: {}.", compId);
-        adminCompilationsService.deleteCompilation(compId);
+        compilationService.deleteCompilationByAdmin(compId);
         log.debug("Подборка удалена.");
     }
 
     @PatchMapping("/{compId}")
     public CompilationDto updateCompilation(@PathVariable int compId, @RequestBody UpdateCompilationRequest request) {
         log.debug("Пришел запрос на изменение подборок.");
-        CompilationDto updatedCompilation = adminCompilationsService.updateCompilation(compId, request);
+        CompilationDto updatedCompilation = compilationService.updateCompilationByAdmin(compId, request);
         log.debug("Изменения сохранены.");
         return updatedCompilation;
     }

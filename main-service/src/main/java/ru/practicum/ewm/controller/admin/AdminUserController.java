@@ -8,7 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.NewUserRequest;
 import ru.practicum.ewm.dto.UserDto;
-import ru.practicum.ewm.service.admin.AdminUsersService;
+import ru.practicum.ewm.service.UserService;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -18,8 +18,8 @@ import java.util.List;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class AdminUsersController {
-    private final AdminUsersService adminUsersService;
+public class AdminUserController {
+    private final UserService userService;
 
     @GetMapping
     public List<UserDto> getUsers(@RequestParam(required = false) int[] ids,
@@ -27,7 +27,7 @@ public class AdminUsersController {
                                   @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на получение информации о пользователях.");
         PageRequest page = PageRequest.of(from / size, size);
-        List<UserDto> foundUsers = adminUsersService.getUsers(ids, page);
+        List<UserDto> foundUsers = userService.getUsers(ids, page);
         log.debug("Найдены пользователи: {}.", foundUsers);
         return foundUsers;
     }
@@ -36,7 +36,7 @@ public class AdminUsersController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto saveUser(@RequestBody @Valid NewUserRequest request) {
         log.debug("Пришел запрос на добавление нового пользователя.");
-        UserDto savedUser = adminUsersService.saveUser(request);
+        UserDto savedUser = userService.saveUser(request);
         log.debug("Пользователь сохранен.");
         return savedUser;
     }
@@ -45,7 +45,7 @@ public class AdminUsersController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable("userId") int userId) {
         log.debug("Удаление пользователя: {}.", userId);
-        adminUsersService.deleteUser(userId);
+        userService.deleteUser(userId);
         log.debug("Пользователь удален.");
     }
 }

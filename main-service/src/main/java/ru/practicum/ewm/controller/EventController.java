@@ -2,13 +2,15 @@ package ru.practicum.ewm.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.client.StatsClient;
 import ru.practicum.ewm.dto.EndpointHit;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.SortType;
-import ru.practicum.ewm.service.EventsService;
+import ru.practicum.ewm.service.EventService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.ValidationException;
@@ -22,9 +24,9 @@ import java.util.List;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class EventsController {
+public class EventController {
     private final StatsClient statsClient;
-    private final EventsService eventsService;
+    private final EventService eventService;
 
     @GetMapping
     public List<EventFullDto> searchEvents(@RequestParam(required = false) String text,
@@ -52,9 +54,13 @@ public class EventsController {
         if (start != null && end != null && end.isBefore(start)) {
             throw new ValidationException("Дата начала поиска должна быть не позже даты окончания.");
         }
+        PageRequest page = PageRequest.of(from / size, size);
         try {
-            foundEvents = eventsService.searchEvents(text, categories, paid, start, end, onlyAvailable,
-                    SortType.valueOf(sortBy.toUpperCase()), from, size);
+            SortType sort = SortType.valueOf(sortBy.toUpperCase());
+            if (SortType.EVENT_DATE.equals(sort)) {
+                page = page.withSort(Sort.by(Sort.Direction.DESC, "eventDate"));
+            }
+            foundEvents = eventService.searchEvents(text, categories, paid, start, end, onlyAvailable, page);
         } catch (IllegalArgumentException ex) {
             log.debug("Неверно указан параметр сортировки.");
             throw new ValidationException("Неверно указан параметр сортировки.");
@@ -67,8 +73,8 @@ public class EventsController {
     @GetMapping("/{id}")
     public EventFullDto getEvent(@PathVariable int id, HttpServletRequest request) {
         log.debug("Пришел запрос на поиск события: {}.", id);
+        EventFullDto foundEvent = eventService.getEvent(id);
         addToStatistic("/event/" + id, request.getRemoteAddr(), request.getRequestURI());
-        EventFullDto foundEvent = eventsService.getEvent(id);
         log.debug("Найдено событие: ", foundEvent);
         return foundEvent;
     }

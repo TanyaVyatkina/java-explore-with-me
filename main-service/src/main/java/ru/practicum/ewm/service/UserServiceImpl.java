@@ -1,4 +1,4 @@
-package ru.practicum.ewm.service.admin;
+package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -14,7 +14,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AdminUsersServiceImpl implements AdminUsersService {
+public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override

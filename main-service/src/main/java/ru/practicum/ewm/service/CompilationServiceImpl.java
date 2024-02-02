@@ -1,6 +1,7 @@
-package ru.practicum.ewm.service.admin;
+package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
@@ -18,12 +19,30 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AdminCompilationsServiceImpl implements AdminCompilationsService {
+public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
 
     @Override
-    public CompilationDto saveCompilation(NewCompilationDto compilationDto) {
+    public List<CompilationDto> searchCompilations(Boolean pinned, PageRequest page) {
+        List<Compilation> compilations;
+        if (pinned != null) {
+            compilations = compilationRepository.findByPinned(pinned, page);
+        } else {
+            compilations = compilationRepository.findAll(page).getContent();
+        }
+        return CompilationMapper.toDtoList(compilations);
+    }
+
+    @Override
+    public CompilationDto getCompilation(int compId) {
+        Compilation compilation = compilationRepository.findById(compId)
+                .orElseThrow(() -> new NotFoundException("Подборка c id = " + compId + " не найдена или недоступна."));
+        return CompilationMapper.toDto(compilation);
+    }
+
+    @Override
+    public CompilationDto saveCompilationByAdmin(NewCompilationDto compilationDto) {
         List<Event> events = null;
         if (compilationDto.getEvents() != null) {
             events = eventRepository.findByIdIn(compilationDto.getEvents());
@@ -34,13 +53,13 @@ public class AdminCompilationsServiceImpl implements AdminCompilationsService {
     }
 
     @Override
-    public void deleteCompilation(int compId) {
+    public void deleteCompilationByAdmin(int compId) {
         Compilation compilation = checkExist(compId);
         compilationRepository.delete(compilation);
     }
 
     @Override
-    public CompilationDto updateCompilation(int compId, UpdateCompilationRequest request) {
+    public CompilationDto updateCompilationByAdmin(int compId, UpdateCompilationRequest request) {
         validateUpdateCompilationRequest(request);
         Compilation compilation = checkExist(compId);
         if (request.getTitle() != null) {

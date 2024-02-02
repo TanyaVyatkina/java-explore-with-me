@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.*;
-import ru.practicum.ewm.service.user.UsersEventsService;
+import ru.practicum.ewm.service.EventService;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -17,14 +17,14 @@ import java.util.List;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class UsersEventsController {
-    private final UsersEventsService usersEventsService;
+public class UserEventController {
+    private final EventService eventsService;
 
     @GetMapping("/{userId}/events")
     public List<EventShortDto> getUserEvents(@PathVariable int userId, @RequestParam(defaultValue = "0") int from, @RequestParam(defaultValue = "10") int size) {
         log.debug("Пришел запрос на получение событий, добавленных пользователем: {}.", userId);
         PageRequest page = PageRequest.of(from / size, size);
-        List<EventShortDto> foundEvents = usersEventsService.getUserEvents(userId, page);
+        List<EventShortDto> foundEvents = eventsService.getUserEvents(userId, page);
         log.debug("Найдены события: {}", foundEvents);
         return foundEvents;
     }
@@ -33,7 +33,7 @@ public class UsersEventsController {
     @ResponseStatus(HttpStatus.CREATED)
     public EventFullDto addUserEvent(@PathVariable int userId, @RequestBody @Valid NewEventDto eventDto) {
         log.debug("Пришел запрос на добавление события пользователем: {}.", userId);
-        EventFullDto addedEvent = usersEventsService.addUserEvent(userId, eventDto);
+        EventFullDto addedEvent = eventsService.addUserEvent(userId, eventDto);
         log.debug("Добавлено событие: {}", addedEvent);
         return addedEvent;
     }
@@ -41,7 +41,7 @@ public class UsersEventsController {
     @GetMapping("/{userId}/events/{eventId}")
     public EventFullDto getUserEvent(@PathVariable int userId, @PathVariable int eventId) {
         log.debug("Пришел запрос на получение события {} пользователя  {}.", eventId, userId);
-        EventFullDto foundEvent = usersEventsService.getUserEvent(userId, eventId);
+        EventFullDto foundEvent = eventsService.getUserEvent(userId, eventId);
         log.debug("Найдено событие: {}", foundEvent);
         return foundEvent;
     }
@@ -50,7 +50,7 @@ public class UsersEventsController {
     public EventFullDto updateUserEvent(@PathVariable Integer userId, @PathVariable Integer eventId,
                                         @RequestBody UpdateEventUserRequest request) {
         log.debug("Пришел запрос на изменение события {} пользователя  {}.", eventId, userId);
-        EventFullDto foundEvent = usersEventsService.updateUserEvent(userId, eventId, request);
+        EventFullDto foundEvent = eventsService.updateUserEvent(userId, eventId, request);
         log.debug("Событие изменено.");
         return foundEvent;
     }
@@ -59,7 +59,7 @@ public class UsersEventsController {
     public List<ParticipationRequestDto> getUserEventRequests(@PathVariable int userId, @PathVariable int eventId) {
         log.debug("Пришел запрос на получение на получение информации о запросах на участие в событии {} " +
                 "пользователя {}.", eventId, userId);
-        List<ParticipationRequestDto> foundRequests = usersEventsService.getUserEventRequests(userId, eventId);
+        List<ParticipationRequestDto> foundRequests = eventsService.getUserEventRequests(userId, eventId);
         log.debug("Найдены запросы: {}", foundRequests);
         return foundRequests;
     }
@@ -68,7 +68,7 @@ public class UsersEventsController {
     public EventRequestStatusUpdateResult updateRequestsStatuses(@PathVariable int userId, @PathVariable int eventId,
                                                                  @RequestBody EventRequestStatusUpdateRequest request) {
         log.debug("Пришел запрос на изменение статуса заявок события {} пользователя  {}.", eventId, userId);
-        EventRequestStatusUpdateResult updateRequestsResult = usersEventsService.updateRequestsStatuses(userId, eventId, request);
+        EventRequestStatusUpdateResult updateRequestsResult = eventsService.updateRequestsStatuses(userId, eventId, request);
         log.debug("Событие изменено.");
         return updateRequestsResult;
     }

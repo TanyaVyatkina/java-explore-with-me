@@ -1,6 +1,7 @@
-package ru.practicum.ewm.service.admin;
+package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.dto.NewCategoryDto;
@@ -11,27 +12,45 @@ import ru.practicum.ewm.mapper.CategoryMapper;
 import ru.practicum.ewm.repository.CategoryRepository;
 import ru.practicum.ewm.repository.EventRepository;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
-public class AdminCategoryServiceImpl implements AdminCategorySevice {
+public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final EventRepository eventRepository;
 
     @Override
-    public CategoryDto saveCategory(NewCategoryDto newCat) {
+    public List<CategoryDto> getCategories(PageRequest page) {
+        List<Category> categories = categoryRepository.findAll(page).getContent();
+        return categories.stream()
+                .map(CategoryMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryDto getCategory(int catId) {
+        Category category = categoryRepository.findById(catId)
+                .orElseThrow(() -> new NotFoundException("Категория с id = " + catId + "не найдена."));
+        return CategoryMapper.toDto(category);
+    }
+
+    @Override
+    public CategoryDto saveCategoryByAdmin(NewCategoryDto newCat) {
         Category category = categoryRepository.save(CategoryMapper.toEntity(newCat));
         return CategoryMapper.toDto(category);
     }
 
     @Override
-    public void deleteCategory(int categoryId) {
+    public void deleteCategoryByAdmin(int categoryId) {
         checkExistence(categoryId);
         checkEventsExist(categoryId);
         categoryRepository.deleteById(categoryId);
     }
 
     @Override
-    public CategoryDto updateCategory(int categoryId, NewCategoryDto categoryDto) {
+    public CategoryDto updateCategoryByAdmin(int categoryId, NewCategoryDto categoryDto) {
         Category category = checkExistence(categoryId);
         category.setName(categoryDto.getName());
         category = categoryRepository.save(category);
