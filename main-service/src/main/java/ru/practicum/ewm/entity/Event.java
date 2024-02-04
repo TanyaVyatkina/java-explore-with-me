@@ -13,6 +13,9 @@ import java.util.List;
 @Table(name = "event")
 @Getter
 @Setter
+@NamedEntityGraph(name = "event-graph", attributeNodes = {
+        @NamedAttributeNode("initiator"),
+        @NamedAttributeNode("category")})
 public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

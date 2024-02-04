@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.ParticipationRequestDto;
 import ru.practicum.ewm.dto.ParticipationRequestStatus;
+import ru.practicum.ewm.dto.ParticipationStat;
 import ru.practicum.ewm.entity.Event;
 import ru.practicum.ewm.entity.ParticipationRequest;
 import ru.practicum.ewm.entity.User;
@@ -51,9 +52,10 @@ public class UserRequestServiceImpl implements UserRequestService {
         }
 
         if (event.getParticipantLimit() != 0) {
-            int participationRequestCount = participationRequestRepository.countAllByEvent_IdAndStatus(eventId,
-                    ParticipationRequestStatus.CONFIRMED);
-            if (participationRequestCount == event.getParticipantLimit()) {
+            List<ParticipationStat> participationStats = participationRequestRepository
+                    .findParticipationRequestStatistic(List.of(eventId), ParticipationRequestStatus.CONFIRMED);
+            if (!participationStats.isEmpty()
+                    && participationStats.get(0).getRequestCount() == event.getParticipantLimit()) {
                 throw new ConflictException("У события достигнут лимит запросов на участие.");
             }
         }

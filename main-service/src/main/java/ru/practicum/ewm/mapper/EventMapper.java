@@ -13,42 +13,41 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class EventMapper {
-    public static EventShortDto toShortDto(Event event, List<ViewStats> views, int confirmedRequest) {
+    public static EventShortDto toShortDto(Event event, Long views, Long confirmedRequest) {
         EventShortDto shortDto = toShortDtoWithoutViews(event);
         shortDto.setConfirmedRequests(confirmedRequest);
-        if (!views.isEmpty()) {
-            shortDto.setViews(views.get(0).getHits());
-        }
+        shortDto.setViews(views);
         return shortDto;
     }
 
-    public static EventFullDto toFullDto(Event event, List<ViewStats> views, int confirmedRequest) {
+    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequest) {
         EventFullDto fullDto = toFullDtoWithoutViews(event);
-        fullDto.setConfirmedRequests(confirmedRequest);
-        if (!views.isEmpty()) {
-            fullDto.setViews(views.get(0).getHits());
+        if (views != null) {
+            fullDto.setViews(views);
+        }
+        if (confirmedRequest != null) {
+            fullDto.setConfirmedRequests(confirmedRequest);
         }
         return fullDto;
     }
 
     public static List<EventShortDto> toShortDtoList(Collection<Event> events,
-                                                     List<ViewStats> views,
-                                                     List<ParticipationStat> participationStats) {
+                                                     Map<Integer, Long> views,
+                                                     Map<Integer, Long> participationStats) {
         List<EventShortDto> dtos = events.stream()
                 .map(EventMapper::toShortDtoWithoutViews)
                 .collect(Collectors.toList());
-        fillViewsToEventShortDtoList(dtos, views);
-        fillConfirmedRequestsToEventShortDtoList(dtos, participationStats);
+        fillConfirmedRequestsAndViewsToEventShortDtoList(dtos, participationStats, views);
         return dtos;
     }
 
-    public static List<EventFullDto> toFullDtoList(Collection<Event> events, List<ViewStats> views,
-                                                   List<ParticipationStat> participationStats) {
+    public static List<EventFullDto> toFullDtoList(Collection<Event> events,
+                                                   Map<Integer, Long> views,
+                                                   Map<Integer, Long> participationStats) {
         List<EventFullDto> dtos = events.stream()
                 .map(EventMapper::toFullDtoWithoutViews)
                 .collect(Collectors.toList());
-        fillViewsToEventFullDtoList(dtos, views);
-        fillConfirmedRequestsToEventFullDtoList(dtos, participationStats);
+        fillConfirmedRequestsAndViewsToEventFullDtoList(dtos, participationStats, views);
         return dtos;
     }
 
@@ -121,6 +120,32 @@ public class EventMapper {
         for (ViewStats vs : views) {
             eventsMap.get(vs.getUri()).setViews(vs.getHits());
         }
+    }
+
+    private static void fillConfirmedRequestsAndViewsToEventShortDtoList(List<EventShortDto> events,
+                                                                         Map<Integer, Long> participationStats,
+                                                                         Map<Integer, Long> views) {
+        for (EventShortDto event : events) {
+            int eventId = event.getId();
+            if (participationStats.get(eventId) != null)
+                event.setConfirmedRequests(participationStats.get(participationStats.get(eventId)));
+            if (views.get(eventId) != null)
+                event.setViews(views.get(event.getId()));
+        }
+
+    }
+
+    private static void fillConfirmedRequestsAndViewsToEventFullDtoList(List<EventFullDto> events,
+                                                                        Map<Integer, Long> participationStats,
+                                                                        Map<Integer, Long> views) {
+        for (EventFullDto event : events) {
+            int eventId = event.getId();
+            if (participationStats.get(eventId) != null)
+                event.setConfirmedRequests(participationStats.get(eventId));
+            if (views.get(eventId) != null)
+                event.setViews(views.get(event.getId()));
+        }
+
     }
 
     private static void fillConfirmedRequestsToEventShortDtoList(List<EventShortDto> events,

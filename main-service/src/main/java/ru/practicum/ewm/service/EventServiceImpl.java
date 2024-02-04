@@ -22,8 +22,8 @@ import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,8 +56,8 @@ public class EventServiceImpl implements EventService {
         BooleanExpression conditions = Expressions.allOf(queryConditions.toArray(new BooleanExpression[queryConditions.size()]));
 
         List<Event> events = eventRepository.findAll(conditions, page).getContent();
-        List<ViewStats> views = findViewsForEvents(events);
-        List<ParticipationStat> participationStats = findConfirmedRequestCount(events);
+        Map<Integer, Long> views = findViewsForEvents(events);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
         List<EventFullDto> foundEvents = EventMapper.toFullDtoList(events, views, participationStats)
                 .stream().filter(e -> {
                     if (onlyAvailable) {
@@ -83,8 +83,9 @@ public class EventServiceImpl implements EventService {
         if (!EventState.PUBLISHED.equals(event.getState())) {
             throw new NotFoundException("Событие должно быть опубликовано.");
         }
-        List<ViewStats> views = findViewsForEvents(Arrays.asList(event));
-        return EventMapper.toFullDto(event, views, findConfirmedRequestCount(id));
+        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        return EventMapper.toFullDto(event, views.get(id), participationStats.get(id));
     }
 
     @Override
@@ -114,8 +115,8 @@ public class EventServiceImpl implements EventService {
         } else {
             events = eventRepository.findAll(conditions, page).getContent();
         }
-        List<ViewStats> views = findViewsForEvents(events);
-        List<ParticipationStat> participationStats = findConfirmedRequestCount(events);
+        Map<Integer, Long> views = findViewsForEvents(events);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
         return EventMapper.toFullDtoList(events, views, participationStats);
     }
 
@@ -173,15 +174,16 @@ public class EventServiceImpl implements EventService {
             event.setCategory(newCat);
         }
         eventRepository.save(event);
-        List<ViewStats> views = findViewsForEvents(Arrays.asList(event));
-        return EventMapper.toFullDto(event, views, findConfirmedRequestCount(eventId));
+        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId));
     }
 
     @Override
     public List<EventShortDto> getUserEvents(int userId, PageRequest page) {
         List<Event> events = eventRepository.findByInitiator_Id(userId, page);
-        List<ViewStats> views = findViewsForEvents(events);
-        List<ParticipationStat> participationStats = findConfirmedRequestCount(events);
+        Map<Integer, Long> views = findViewsForEvents(events);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
         return EventMapper.toShortDtoList(events, views, participationStats);
     }
 
@@ -194,7 +196,7 @@ public class EventServiceImpl implements EventService {
                         + " не найдена или недоступна."));
         Event event = EventMapper.toNewEntity(eventDto, initiator, category);
         event = eventRepository.save(event);
-        return EventMapper.toFullDto(event, Collections.emptyList(), 0);
+        return EventMapper.toFullDto(event, 0L, 0L);
     }
 
     @Override
@@ -202,8 +204,9 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId
                         + "пользователя id = " + userId));
-        List<ViewStats> views = findViewsForEvents(Arrays.asList(event));
-        return EventMapper.toFullDto(event, views, findConfirmedRequestCount(eventId));
+        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
+        Map<Integer, Long> paricipationStats = findConfirmedRequestCount(List.of(event));
+        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId));
     }
 
     @Override
@@ -254,8 +257,9 @@ public class EventServiceImpl implements EventService {
             event.setState(EventState.CANCELED);
         }
         eventRepository.save(event);
-        List<ViewStats> views = findViewsForEvents(Arrays.asList(event));
-        return EventMapper.toFullDto(event, views, findConfirmedRequestCount(eventId));
+        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
+        Map<Integer, Long> paricipationStats = findConfirmedRequestCount(List.of(event));
+        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId));
     }
 
     @Override
@@ -270,8 +274,10 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new NotFoundException("Не найдено событие с id = " + eventId
                         + "пользователя id = " + userId));
         int participantLimit = event.getParticipantLimit();
-        int confirmedRequestsCount = participationRequestRepository.countAllByEvent_IdAndStatus(eventId,
-                ParticipationRequestStatus.CONFIRMED);
+        Long confirmedRequestsCount = findConfirmedRequestCount(List.of(event)).get(eventId);
+        if (confirmedRequestsCount == null) {
+            confirmedRequestsCount = 0L;
+        }
         RequestStatus newStatus = request.getStatus();
 
         if (RequestStatus.CONFIRMED.equals(newStatus) && confirmedRequestsCount == participantLimit) {
@@ -320,25 +326,24 @@ public class EventServiceImpl implements EventService {
         return e2.getViews() > e1.getViews() ? 1 : -1;
     }
 
-    private List<ViewStats> findViewsForEvents(List<Event> events) {
+    private Map<Integer, Long> findViewsForEvents(List<Event> events) {
         List<String> urisForStatistic = events.stream()
                 .map(e -> "/events/" + e.getId())
                 .collect(Collectors.toList());
         ViewStatsRequest request = new ViewStatsRequest(LocalDateTime.of(2024, 1, 1, 0, 0),
-                LocalDateTime.now(), urisForStatistic.toArray(new String[urisForStatistic.size()]), true);
-        return statsClient.findStatistic(request);
+                LocalDateTime.now(), urisForStatistic, true);
+        List<ViewStats> viewStats = statsClient.findStatistic(request);
+        return viewStats.stream()
+                .collect(Collectors.toMap(v -> Integer.valueOf(v.getUri().substring(8)), v -> v.getHits()));
     }
 
-    private int findConfirmedRequestCount(int eventId) {
-        return participationRequestRepository.countAllByEvent_IdAndStatus(eventId,
-                ParticipationRequestStatus.CONFIRMED);
-    }
-
-    private List<ParticipationStat> findConfirmedRequestCount(List<Event> events) {
+    private Map<Integer, Long> findConfirmedRequestCount(List<Event> events) {
         List<Integer> eventIds = events.stream()
                 .map(Event::getId)
                 .collect(Collectors.toList());
-        return participationRequestRepository.findParticipationRequestStatistic(eventIds,
+        List<ParticipationStat> participationStats = participationRequestRepository.findParticipationRequestStatistic(eventIds,
                 ParticipationRequestStatus.CONFIRMED);
+        return participationStats.stream()
+                .collect(Collectors.toMap(p -> p.getEventId(), p -> p.getRequestCount()));
     }
 }

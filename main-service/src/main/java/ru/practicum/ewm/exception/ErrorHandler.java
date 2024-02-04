@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.ewm.dto.ApiError;
 
 import javax.validation.ValidationException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -57,10 +57,12 @@ public class ErrorHandler {
         error.setMessage(ex.getMessage());
         error.setTimestamp(LocalDateTime.now());
         error.setStatus(status);
-        List<String> errors = Arrays.stream(ex.getStackTrace())
-                .map(StackTraceElement::toString)
-                .collect(Collectors.toList());
-        error.setErrors(errors);
+
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        ex.printStackTrace(pw);
+        error.setErrors(List.of(sw.toString()));
+
         if (ex.getCause() != null) {
             error.setReason(ex.getCause().toString());
         }

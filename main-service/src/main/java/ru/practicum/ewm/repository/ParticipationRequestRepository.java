@@ -16,8 +16,6 @@ public interface ParticipationRequestRepository extends JpaRepository<Participat
 
     int countAllByRequester_IdAndEventId(int userId, int eventId);
 
-    int countAllByEvent_IdAndStatus(int eventId, ParticipationRequestStatus status);
-
     List<ParticipationRequest> findByIdIn(List<Integer> ids);
 
     @Query("select new ru.practicum.ewm.dto.ParticipationStat(p.event.id, count(p)) " +
