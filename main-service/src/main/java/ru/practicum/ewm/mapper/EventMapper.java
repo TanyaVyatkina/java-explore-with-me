@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class EventMapper {
@@ -104,24 +103,6 @@ public class EventMapper {
         return fullDto;
     }
 
-    private static void fillViewsToEventShortDtoList(List<EventShortDto> events, List<ViewStats> views) {
-        Map<String, EventShortDto> eventsMap = events
-                .stream()
-                .collect(Collectors.toMap(e -> "/events/" + e.getId(), Function.identity()));
-        for (ViewStats vs : views) {
-            eventsMap.get(vs.getUri()).setViews(vs.getHits());
-        }
-    }
-
-    private static void fillViewsToEventFullDtoList(List<EventFullDto> events, List<ViewStats> views) {
-        Map<String, EventFullDto> eventsMap = events
-                .stream()
-                .collect(Collectors.toMap(e -> "/events/" + e.getId(), Function.identity()));
-        for (ViewStats vs : views) {
-            eventsMap.get(vs.getUri()).setViews(vs.getHits());
-        }
-    }
-
     private static void fillConfirmedRequestsAndViewsToEventShortDtoList(List<EventShortDto> events,
                                                                          Map<Integer, Long> participationStats,
                                                                          Map<Integer, Long> views) {
@@ -146,25 +127,5 @@ public class EventMapper {
                 event.setViews(views.get(event.getId()));
         }
 
-    }
-
-    private static void fillConfirmedRequestsToEventShortDtoList(List<EventShortDto> events,
-                                                                 List<ParticipationStat> participationStats) {
-        Map<Integer, EventShortDto> eventsMap = events
-                .stream()
-                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
-        for (ParticipationStat pr : participationStats) {
-            eventsMap.get(pr.getEventId()).setConfirmedRequests(pr.getRequestCount());
-        }
-    }
-
-    private static void fillConfirmedRequestsToEventFullDtoList(List<EventFullDto> events,
-                                                                List<ParticipationStat> participationStats) {
-        Map<Integer, EventFullDto> eventsMap = events
-                .stream()
-                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
-        for (ParticipationStat pr : participationStats) {
-            eventsMap.get(pr.getEventId()).setConfirmedRequests(pr.getRequestCount());
-        }
     }
 }
