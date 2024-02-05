@@ -34,9 +34,16 @@ public class EventMapper {
                                                      Map<Integer, Long> views,
                                                      Map<Integer, Long> participationStats) {
         List<EventShortDto> dtos = events.stream()
-                .map(EventMapper::toShortDtoWithoutViews)
+                .map(event -> {
+                    EventShortDto shortDto = toShortDtoWithoutViews(event);
+                    int eventId = event.getId();
+                    if (participationStats.get(eventId) != null)
+                        shortDto.setConfirmedRequests(participationStats.get(eventId));
+                    if (views.get(eventId) != null)
+                        shortDto.setViews(views.get(eventId));
+                    return shortDto;
+                })
                 .collect(Collectors.toList());
-        fillConfirmedRequestsAndViewsToEventShortDtoList(dtos, participationStats, views);
         return dtos;
     }
 
@@ -44,9 +51,16 @@ public class EventMapper {
                                                    Map<Integer, Long> views,
                                                    Map<Integer, Long> participationStats) {
         List<EventFullDto> dtos = events.stream()
-                .map(EventMapper::toFullDtoWithoutViews)
+                .map(event -> {
+                    EventFullDto fullDto = toFullDtoWithoutViews(event);
+                    int eventId = event.getId();
+                    if (participationStats.get(eventId) != null)
+                        fullDto.setConfirmedRequests(participationStats.get(eventId));
+                    if (views.get(eventId) != null)
+                        fullDto.setViews(views.get(event.getId()));
+                    return fullDto;
+                })
                 .collect(Collectors.toList());
-        fillConfirmedRequestsAndViewsToEventFullDtoList(dtos, participationStats, views);
         return dtos;
     }
 
@@ -101,31 +115,5 @@ public class EventMapper {
         fullDto.setState(event.getState());
         fullDto.setTitle(event.getTitle());
         return fullDto;
-    }
-
-    private static void fillConfirmedRequestsAndViewsToEventShortDtoList(List<EventShortDto> events,
-                                                                         Map<Integer, Long> participationStats,
-                                                                         Map<Integer, Long> views) {
-        for (EventShortDto event : events) {
-            int eventId = event.getId();
-            if (participationStats.get(eventId) != null)
-                event.setConfirmedRequests(participationStats.get(participationStats.get(eventId)));
-            if (views.get(eventId) != null)
-                event.setViews(views.get(event.getId()));
-        }
-
-    }
-
-    private static void fillConfirmedRequestsAndViewsToEventFullDtoList(List<EventFullDto> events,
-                                                                        Map<Integer, Long> participationStats,
-                                                                        Map<Integer, Long> views) {
-        for (EventFullDto event : events) {
-            int eventId = event.getId();
-            if (participationStats.get(eventId) != null)
-                event.setConfirmedRequests(participationStats.get(eventId));
-            if (views.get(eventId) != null)
-                event.setViews(views.get(event.getId()));
-        }
-
     }
 }
