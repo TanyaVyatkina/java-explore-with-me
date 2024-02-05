@@ -26,6 +26,7 @@ public class NewEventDto {
     @NotNull
     private Location location;
     private Boolean paid;
+    @Size(min = 0)
     private int participantLimit;
     private Boolean requestModeration;
     @NotNull
