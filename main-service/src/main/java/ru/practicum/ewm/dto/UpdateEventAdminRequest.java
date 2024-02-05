@@ -7,6 +7,7 @@ import ru.practicum.ewm.validator.Description;
 import ru.practicum.ewm.validator.EventDate;
 import ru.practicum.ewm.validator.Title;
 
+import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Getter
@@ -21,6 +22,7 @@ public class UpdateEventAdminRequest {
     private LocalDateTime eventDate;
     private Location location;
     private Boolean paid;
+    @Size(min = 0)
     private Integer participantLimit;
     private Boolean requestModeration;
     private AdminStateAction stateAction;
