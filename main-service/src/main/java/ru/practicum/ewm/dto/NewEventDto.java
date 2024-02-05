@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -26,7 +27,7 @@ public class NewEventDto {
     @NotNull
     private Location location;
     private Boolean paid;
-    @Size(min = 0)
+    @Min(0)
     private int participantLimit;
     private Boolean requestModeration;
     @NotNull
