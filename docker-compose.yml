@@ -33,7 +33,7 @@ services:
       - ewm-db
     environment:
       - STATS_SERVER_URL=http://stats-server:9090
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/emv
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm
       - SPRING_DATASOURCE_USER=root
       - SPRING_DATASOURCE_PASSWORD=root
 
@@ -43,6 +43,6 @@ services:
     ports:
       - "6542:5432"
     environment:
-      - POSTGRES_DB=emv
+      - POSTGRES_DB=ewm
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
