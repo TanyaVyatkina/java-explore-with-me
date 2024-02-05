@@ -8,7 +8,6 @@ import ru.practicum.ewm.validator.EventDate;
 import ru.practicum.ewm.validator.Title;
 
 import javax.validation.constraints.Min;
-import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Getter
