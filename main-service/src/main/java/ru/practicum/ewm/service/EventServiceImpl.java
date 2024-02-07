@@ -11,20 +11,18 @@ import ru.practicum.ewm.dto.*;
 import ru.practicum.ewm.entity.*;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.mapper.CommentMapper;
 import ru.practicum.ewm.mapper.EventMapper;
 import ru.practicum.ewm.mapper.ParticipationRequestMapper;
-import ru.practicum.ewm.repository.CategoryRepository;
-import ru.practicum.ewm.repository.EventRepository;
-import ru.practicum.ewm.repository.ParticipationRequestRepository;
-import ru.practicum.ewm.repository.UserRepository;
+import ru.practicum.ewm.repository.*;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +31,7 @@ public class EventServiceImpl implements EventService {
     private final CategoryRepository categoryRepository;
     private final ParticipationRequestRepository participationRequestRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
     private final StatsClient statsClient;
 
     @Override
@@ -58,7 +57,14 @@ public class EventServiceImpl implements EventService {
         List<Event> events = eventRepository.findAll(conditions, page).getContent();
         Map<Integer, Long> views = findViewsForEvents(events);
         Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
-        List<EventFullDto> foundEvents = EventMapper.toFullDtoList(events, views, participationStats)
+        List<Integer> eventIds = events.stream()
+                .map(Event::getId)
+                .collect(toList());
+        List<Comment> comments = commentRepository.findByEvent_IdIn(eventIds);
+        Map<Event, List<Comment>> commentsMap = comments
+                .stream()
+                .collect(groupingBy(Comment::getEvent, toList()));
+        List<EventFullDto> foundEvents = EventMapper.toFullDtoList(events, views, participationStats, commentsMap)
                 .stream().filter(e -> {
                     if (onlyAvailable) {
                         return e.getParticipantLimit() == 0 || e.getConfirmedRequests() < e.getParticipantLimit();
@@ -85,7 +91,9 @@ public class EventServiceImpl implements EventService {
         }
         Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
         Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
-        return EventMapper.toFullDto(event, views.get(id), participationStats.get(id));
+        List<Comment> comments = commentRepository.findByEvent_Id(event.getId());
+        return EventMapper.toFullDto(event, views.get(id), participationStats.get(id),
+                CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
@@ -117,7 +125,14 @@ public class EventServiceImpl implements EventService {
         }
         Map<Integer, Long> views = findViewsForEvents(events);
         Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
-        return EventMapper.toFullDtoList(events, views, participationStats);
+        List<Integer> eventIds = events.stream()
+                .map(Event::getId)
+                .collect(toList());
+        List<Comment> comments = commentRepository.findByEvent_IdIn(eventIds);
+        Map<Event, List<Comment>> commentsMap = comments
+                .stream()
+                .collect(groupingBy(Comment::getEvent, toList()));
+        return EventMapper.toFullDtoList(events, views, participationStats, commentsMap);
     }
 
     @Override
@@ -176,7 +191,9 @@ public class EventServiceImpl implements EventService {
         eventRepository.save(event);
         Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
         Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
-        return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId));
+        List<Comment> comments = commentRepository.findByEvent_Id(eventId);
+        return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId),
+                CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
@@ -196,7 +213,7 @@ public class EventServiceImpl implements EventService {
                         + " не найдена или недоступна."));
         Event event = EventMapper.toNewEntity(eventDto, initiator, category);
         event = eventRepository.save(event);
-        return EventMapper.toFullDto(event, 0L, 0L);
+        return EventMapper.toFullDto(event, 0L, 0L, Collections.emptyList());
     }
 
     @Override
@@ -206,7 +223,9 @@ public class EventServiceImpl implements EventService {
                         + "пользователя id = " + userId));
         Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
         Map<Integer, Long> paricipationStats = findConfirmedRequestCount(List.of(event));
-        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId));
+        List<Comment> comments = commentRepository.findByEvent_Id(eventId);
+        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId),
+                CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
@@ -258,8 +277,10 @@ public class EventServiceImpl implements EventService {
         }
         eventRepository.save(event);
         Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
-        Map<Integer, Long> paricipationStats = findConfirmedRequestCount(List.of(event));
-        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        List<Comment> comments = commentRepository.findByEvent_Id(eventId);
+        return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId),
+                CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
@@ -312,6 +333,39 @@ public class EventServiceImpl implements EventService {
         result.setConfirmedRequests(confirmedRequests);
         result.setRejectedRequests(rejectedRequests);
         return result;
+    }
+
+    @Override
+    public CommentDto addComment(int userId, int eventId, NewCommentDto commentDto) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId));
+        User author = userRepository.findById(userId).get();
+        Comment comment = CommentMapper.toNewComment(commentDto, author, event);
+        comment = commentRepository.save(comment);
+        return CommentMapper.toCommentDto(comment);
+    }
+
+    @Override
+    public CommentDto updateComment(int userId, int commentId, NewCommentDto commentDto) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + commentId));
+        if (userId != comment.getAuthor().getId()) {
+            throw new ValidationException("Изменить комментарий может только пользователь, который его добавил.");
+        }
+        comment.setText(commentDto.getText());
+        comment.setUpdated(LocalDateTime.now());
+        return CommentMapper.toCommentDto(comment);
+    }
+
+    @Override
+    public void deleteComment(boolean isAdmin, Integer userId, int commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + commentId));
+        if (!isAdmin && !userId.equals(comment.getAuthor().getId())) {
+            throw new ValidationException("Удалить комментарий может только пользователь, который его добавил, " +
+                    "или администратор.");
+        }
+        commentRepository.delete(comment);
     }
 
     private void checkData(LocalDateTime dateTime) {

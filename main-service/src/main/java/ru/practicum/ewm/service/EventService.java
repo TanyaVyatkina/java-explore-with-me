@@ -28,4 +28,11 @@ public interface EventService {
     List<ParticipationRequestDto> getUserEventRequests(int userId, int eventId);
 
     EventRequestStatusUpdateResult updateRequestsStatuses(int userId, int eventId, EventRequestStatusUpdateRequest request);
+
+    CommentDto addComment(int userId, int eventId, NewCommentDto commentDto);
+
+    CommentDto updateComment(int userId, int commentId, NewCommentDto commentDto);
+
+    void deleteComment(boolean isAdmin, Integer userId, int commentId);
+
 }
