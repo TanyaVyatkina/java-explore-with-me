@@ -49,10 +49,16 @@
 							"    try {",
 							"        const user = await api.addUser(rnd.getUser());",
 							"        const category = await api.addCategory(rnd.getCategory());",
-							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
+							"        let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
 							"        event = await api.publishEvent(event.id);",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
-							"        pm.collectionVariables.set(\"uid\", user.id)",
+							"        pm.collectionVariables.set(\"uid\", participant.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"    } catch(err) {",
 							"        console.error(\"Ошибка при подготовке тестовых данных.\", err);",
@@ -211,7 +217,7 @@
 			"response": []
 		},
 		{
-			"name": "Получение события с комментарием",
+			"name": "Добавление комментария не участником события (ошибка)",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -226,7 +232,106 @@
 							"        const category = await api.addCategory(rnd.getCategory());",
 							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
 							"        event = await api.publishEvent(event.id);",
-							"        const comment = await api.addComment(user.id, event.id,rnd.getComment());",
+							"        pm.collectionVariables.set(\"eid\", event.id)",
+							"        pm.collectionVariables.set(\"uid\", user.id - 1)",
+							"        pm.collectionVariables.set('response', event);",
+							"    } catch(err) {",
+							"        console.error(\"Ошибка при подготовке тестовых данных.\", err);",
+							"    }",
+							"};",
+							"",
+							"const interval = setInterval(() => {}, 1000);",
+							"",
+							"setTimeout(async () => ",
+							"    {",
+							"        try {",
+							"            // выполняем наш скрипт",
+							"            await main();",
+							"        } catch (e) {",
+							"            console.error(e);",
+							"        } finally {",
+							"            clearInterval(interval);",
+							"        }",
+							"    },  ",
+							"    100 ",
+							");"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Ответ должен содержать код статуса 409\", function () {",
+							"    pm.response.to.have.status(409);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"text\": \"Новый комментарий от пользователя 1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/users/:userId/events/:eventId/comment",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"users",
+						":userId",
+						"events",
+						":eventId",
+						"comment"
+					],
+					"variable": [
+						{
+							"key": "userId",
+							"value": "{{uid}}"
+						},
+						{
+							"key": "eventId",
+							"value": "{{eid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Получение события с комментарием",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const main = async () => {",
+							"    const api = new API(pm);",
+							"    const rnd = new RandomUtils();",
+							"",
+							"    try {",
+							"        const user = await api.addUser(rnd.getUser());",
+							"        const category = await api.addCategory(rnd.getCategory());",
+							"        let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
+							"        event = await api.publishEvent(event.id);",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
+							"        const comment = await api.addComment(participant.id, event.id,rnd.getComment());",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"        pm.collectionVariables.set(\"comment\", comment)",
@@ -333,11 +438,17 @@
 							"    try {",
 							"        const user = await api.addUser(rnd.getUser());",
 							"        const category = await api.addCategory(rnd.getCategory());",
-							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
+							"       let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
 							"        event = await api.publishEvent(event.id);",
-							"        const comment = await api.addComment(user.id, event.id,rnd.getComment());",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
+							"        const comment = await api.addComment(participant.id, event.id,rnd.getComment());",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
-							"        pm.collectionVariables.set(\"uid\", user.id)",
+							"        pm.collectionVariables.set(\"uid\", participant.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"        pm.collectionVariables.set(\"cid\", comment.id);",
 							"",
@@ -446,9 +557,15 @@
 							"    try {",
 							"        const user = await api.addUser(rnd.getUser());",
 							"        const category = await api.addCategory(rnd.getCategory());",
-							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
+							"         let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
 							"        event = await api.publishEvent(event.id);",
-							"        const comment = await api.addComment(user.id, event.id,rnd.getComment());",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
+							"        const comment = await api.addComment(participant.id, event.id,rnd.getComment());",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"        pm.collectionVariables.set(\"cid\", comment.id);",
@@ -530,11 +647,17 @@
 							"    try {",
 							"        const user = await api.addUser(rnd.getUser());",
 							"        const category = await api.addCategory(rnd.getCategory());",
-							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
+							"        let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
 							"        event = await api.publishEvent(event.id);",
-							"        const comment = await api.addComment(user.id, event.id,rnd.getComment());",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
+							"        const comment = await api.addComment(participant.id, event.id,rnd.getComment());",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
-							"        pm.collectionVariables.set(\"uid\", user.id)",
+							"        pm.collectionVariables.set(\"uid\", participant.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"        pm.collectionVariables.set(\"cid\", comment.id);",
 							"",
@@ -630,9 +753,15 @@
 							"    try {",
 							"        const user = await api.addUser(rnd.getUser());",
 							"        const category = await api.addCategory(rnd.getCategory());",
-							"        let event = await api.addEvent(user.id, rnd.getEvent(category.id));",
+							"        let newEvent = rnd.getEvent(category.id);",
+							"        newEvent.participantLimit = 0;",
+							"        let event = await api.addEvent(user.id, newEvent);",
 							"        event = await api.publishEvent(event.id);",
-							"        const comment = await api.addComment(user.id, event.id,rnd.getComment());",
+							"        const participant = await api.addUser(rnd.getUser());",
+							"",
+							"        await api.publishParticipationRequest(event.id,",
+							"         participant.id);",
+							"        const comment = await api.addComment(participant.id, event.id,rnd.getComment());",
 							"        pm.collectionVariables.set(\"eid\", event.id)",
 							"        pm.collectionVariables.set('response', event);",
 							"        pm.collectionVariables.set(\"cid\", comment.id);",
@@ -721,6 +850,14 @@
 					"",
 					"    async publishEvent(eventId, verbose=null) {",
 					"        return this.patch('/admin/events/' + eventId, {stateAction: \"PUBLISH_EVENT\"}, \"Ошибка при публикации события\", verbose);",
+					"    }",
+					"    ",
+					"    async publishParticipationRequest(eventId, userId, verbose=null) {",
+					"        return this.post('/users/' + userId + '/requests?eventId=' + eventId, null, \"Ошибка при добавлении нового запроса на участие в событии\", verbose);",
+					"    }",
+					"",
+					"   async acceptParticipationRequest(eventId, userId, reqId, verbose=null) {",
+					"        return this.patch('/users/' + userId + '/events/' + eventId + '/requests/', {requestIds:[reqId], status: \"CONFIRMED\"}, \"Ошибка при принятии заявки на участие в событии\", verbose);",
 					"    }",
 					"    ",
 					"",

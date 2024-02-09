@@ -3,6 +3,7 @@ package ru.practicum.ewm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.dto.UpdateCompilationRequest;
@@ -24,6 +25,7 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventRepository eventRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CompilationDto> searchCompilations(Boolean pinned, PageRequest page) {
         List<Compilation> compilations;
         if (pinned != null) {
@@ -35,6 +37,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CompilationDto getCompilation(int compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Подборка c id = " + compId + " не найдена или недоступна."));
@@ -42,6 +45,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public CompilationDto saveCompilationByAdmin(NewCompilationDto compilationDto) {
         List<Event> events = null;
         if (compilationDto.getEvents() != null) {
@@ -53,12 +57,14 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public void deleteCompilationByAdmin(int compId) {
         Compilation compilation = checkExist(compId);
         compilationRepository.delete(compilation);
     }
 
     @Override
+    @Transactional
     public CompilationDto updateCompilationByAdmin(int compId, UpdateCompilationRequest request) {
         validateUpdateCompilationRequest(request);
         Compilation compilation = checkExist(compId);

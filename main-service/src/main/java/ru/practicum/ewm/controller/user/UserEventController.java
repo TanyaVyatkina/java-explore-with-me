@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.*;
+import ru.practicum.ewm.service.CommentService;
 import ru.practicum.ewm.service.EventService;
 
 import javax.validation.Valid;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserEventController {
     private final EventService eventService;
+    private final CommentService commentService;
 
     @GetMapping("/{userId}/events")
     public List<EventShortDto> getUserEvents(@PathVariable int userId, @RequestParam(defaultValue = "0") int from, @RequestParam(defaultValue = "10") int size) {
@@ -80,7 +82,7 @@ public class UserEventController {
                                  @PathVariable("eventId") int eventId,
                                  @RequestBody @Valid NewCommentDto newCommentDto) {
         log.debug("Запрос на добавление комментария от пользователя id = {}, к событию id = {}.", userId, eventId);
-        CommentDto comment = eventService.addComment(userId, eventId, newCommentDto);
+        CommentDto comment = commentService.addComment(userId, eventId, newCommentDto);
         log.debug("Комментарий добавлен.");
         return comment;
     }
@@ -89,7 +91,7 @@ public class UserEventController {
     public CommentDto updateComment(@PathVariable int userId, @PathVariable("commentId") int commentId,
                                     @RequestBody @Valid NewCommentDto newCommentDto) {
         log.debug("Пришел запрос на изменение комментария id = {}.", commentId);
-        CommentDto updatedComment = eventService.updateComment(userId, commentId, newCommentDto);
+        CommentDto updatedComment = commentService.updateComment(userId, commentId, newCommentDto);
         log.debug("Изменения сохранены.");
         return updatedComment;
     }
@@ -98,7 +100,7 @@ public class UserEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteComment(@PathVariable int userId, @PathVariable("commentId") int commentId) {
         log.debug("Удаление комментария: {}.", commentId);
-        eventService.deleteComment(false, userId, commentId);
+        commentService.deleteComment(false, userId, commentId);
         log.debug("Комментарий удален.");
     }
 }

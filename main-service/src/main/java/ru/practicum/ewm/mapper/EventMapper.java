@@ -8,6 +8,7 @@ import ru.practicum.ewm.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,17 +53,22 @@ public class EventMapper {
     public static List<EventFullDto> toFullDtoList(Collection<Event> events,
                                                    Map<Integer, Long> views,
                                                    Map<Integer, Long> participationStats,
-                                                   Map<Event, List<Comment>> comments) {
+                                                   Map<Integer, List<Comment>> comments) {
         List<EventFullDto> dtos = events.stream()
                 .map(event -> {
                     EventFullDto fullDto = toFullDtoWithoutViews(event);
                     int eventId = event.getId();
-                    if (participationStats.get(eventId) != null)
-                        fullDto.setConfirmedRequests(participationStats.get(eventId));
-                    if (views.get(eventId) != null)
-                        fullDto.setViews(views.get(event.getId()));
-                    if (comments.get(event) != null) {
-                        fullDto.setComments(CommentMapper.toCommentDtoList(comments.get(event)));
+                    Long confRequestCount = participationStats.get(eventId);
+                    if (confRequestCount != null)
+                        fullDto.setConfirmedRequests(confRequestCount);
+                    Long viewsCount = views.get(eventId);
+                    if (viewsCount != null)
+                        fullDto.setViews(viewsCount);
+                    List<Comment> eventComments = comments.get(eventId);
+                    if (eventComments != null) {
+                        fullDto.setComments(CommentMapper.toCommentDtoList(eventComments));
+                    } else {
+                        fullDto.setComments(Collections.emptyList());
                     }
                     return fullDto;
                 })

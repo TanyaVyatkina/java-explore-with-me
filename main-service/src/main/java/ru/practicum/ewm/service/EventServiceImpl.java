@@ -5,6 +5,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.client.StatsClient;
 import ru.practicum.ewm.client.ViewStatsRequest;
 import ru.practicum.ewm.dto.*;
@@ -18,7 +19,10 @@ import ru.practicum.ewm.repository.*;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -35,6 +39,7 @@ public class EventServiceImpl implements EventService {
     private final StatsClient statsClient;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventFullDto> searchEvents(String text, List<Integer> categories, Boolean paid, LocalDateTime rangeStart,
                                            LocalDateTime rangeEnd, Boolean onlyAvailable, PageRequest page) {
         QEvent event = QEvent.event;
@@ -55,15 +60,15 @@ public class EventServiceImpl implements EventService {
         BooleanExpression conditions = Expressions.allOf(queryConditions.toArray(new BooleanExpression[queryConditions.size()]));
 
         List<Event> events = eventRepository.findAll(conditions, page).getContent();
-        Map<Integer, Long> views = findViewsForEvents(events);
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
         List<Integer> eventIds = events.stream()
                 .map(Event::getId)
                 .collect(toList());
+        Map<Integer, Long> views = findViewsForEvents(eventIds);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(eventIds);
         List<Comment> comments = commentRepository.findByEvent_IdIn(eventIds);
-        Map<Event, List<Comment>> commentsMap = comments
+        Map<Integer, List<Comment>> commentsMap = comments
                 .stream()
-                .collect(groupingBy(Comment::getEvent, toList()));
+                .collect(groupingBy(c -> c.getEvent().getId(), toList()));
         List<EventFullDto> foundEvents = EventMapper.toFullDtoList(events, views, participationStats, commentsMap)
                 .stream().filter(e -> {
                     if (onlyAvailable) {
@@ -83,20 +88,22 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventFullDto getEvent(int id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие с id = " + id));
         if (!EventState.PUBLISHED.equals(event.getState())) {
             throw new NotFoundException("Событие должно быть опубликовано.");
         }
-        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        Map<Integer, Long> views = findViewsForEvents(List.of(id));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(id));
         List<Comment> comments = commentRepository.findByEvent_Id(event.getId());
         return EventMapper.toFullDto(event, views.get(id), participationStats.get(id),
                 CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventFullDto> searchEventsByAdmin(List<Integer> users, List<EventState> states, List<Integer> categories,
                                                   LocalDateTime rangeStart, LocalDateTime rangeEnd, PageRequest page) {
         QEvent event = QEvent.event;
@@ -123,19 +130,20 @@ public class EventServiceImpl implements EventService {
         } else {
             events = eventRepository.findAll(conditions, page).getContent();
         }
-        Map<Integer, Long> views = findViewsForEvents(events);
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
         List<Integer> eventIds = events.stream()
                 .map(Event::getId)
                 .collect(toList());
+        Map<Integer, Long> views = findViewsForEvents(eventIds);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(eventIds);
         List<Comment> comments = commentRepository.findByEvent_IdIn(eventIds);
-        Map<Event, List<Comment>> commentsMap = comments
+        Map<Integer, List<Comment>> commentsMap = comments
                 .stream()
-                .collect(groupingBy(Comment::getEvent, toList()));
+                .collect(groupingBy(c -> c.getEvent().getId(), toList()));
         return EventMapper.toFullDtoList(events, views, participationStats, commentsMap);
     }
 
     @Override
+    @Transactional
     public EventFullDto updateEvent(int eventId, UpdateEventAdminRequest request) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId));
@@ -189,22 +197,27 @@ public class EventServiceImpl implements EventService {
             event.setCategory(newCat);
         }
         eventRepository.save(event);
-        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        Map<Integer, Long> views = findViewsForEvents(List.of(eventId));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(eventId));
         List<Comment> comments = commentRepository.findByEvent_Id(eventId);
         return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId),
                 CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventShortDto> getUserEvents(int userId, PageRequest page) {
         List<Event> events = eventRepository.findByInitiator_Id(userId, page);
-        Map<Integer, Long> views = findViewsForEvents(events);
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(events);
+        List<Integer> eventIds = events.stream()
+                .map(Event::getId)
+                .collect(toList());
+        Map<Integer, Long> views = findViewsForEvents(eventIds);
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(eventIds);
         return EventMapper.toShortDtoList(events, views, participationStats);
     }
 
     @Override
+    @Transactional
     public EventFullDto addUserEvent(int userId, NewEventDto eventDto) {
         checkData(eventDto.getEventDate());
         User initiator = userRepository.findById(userId).get();
@@ -217,18 +230,20 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventFullDto getUserEvent(int userId, int eventId) {
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId
                         + "пользователя id = " + userId));
-        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
-        Map<Integer, Long> paricipationStats = findConfirmedRequestCount(List.of(event));
+        Map<Integer, Long> views = findViewsForEvents(List.of(eventId));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(eventId));
         List<Comment> comments = commentRepository.findByEvent_Id(eventId);
-        return EventMapper.toFullDto(event, views.get(eventId), paricipationStats.get(eventId),
+        return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId),
                 CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
+    @Transactional
     public EventFullDto updateUserEvent(int userId, int eventId, UpdateEventUserRequest request) {
         checkData(request.getEventDate());
 
@@ -276,26 +291,28 @@ public class EventServiceImpl implements EventService {
             event.setState(EventState.CANCELED);
         }
         eventRepository.save(event);
-        Map<Integer, Long> views = findViewsForEvents(Arrays.asList(event));
-        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(event));
+        Map<Integer, Long> views = findViewsForEvents(List.of(eventId));
+        Map<Integer, Long> participationStats = findConfirmedRequestCount(List.of(eventId));
         List<Comment> comments = commentRepository.findByEvent_Id(eventId);
         return EventMapper.toFullDto(event, views.get(eventId), participationStats.get(eventId),
                 CommentMapper.toCommentDtoList(comments));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserEventRequests(int userId, int eventId) {
         List<ParticipationRequest> participationRequests = participationRequestRepository.findByEvent_Id(eventId);
         return ParticipationRequestMapper.toDtoList(participationRequests);
     }
 
     @Override
+    @Transactional
     public EventRequestStatusUpdateResult updateRequestsStatuses(int userId, int eventId, EventRequestStatusUpdateRequest request) {
         Event event = eventRepository.findByIdAndInitiator_Id(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие с id = " + eventId
                         + "пользователя id = " + userId));
         int participantLimit = event.getParticipantLimit();
-        Long confirmedRequestsCount = findConfirmedRequestCount(List.of(event)).get(eventId);
+        Long confirmedRequestsCount = findConfirmedRequestCount(List.of(eventId)).get(eventId);
         if (confirmedRequestsCount == null) {
             confirmedRequestsCount = 0L;
         }
@@ -335,39 +352,6 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
-    @Override
-    public CommentDto addComment(int userId, int eventId, NewCommentDto commentDto) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Не найдено событие id = " + eventId));
-        User author = userRepository.findById(userId).get();
-        Comment comment = CommentMapper.toNewComment(commentDto, author, event);
-        comment = commentRepository.save(comment);
-        return CommentMapper.toCommentDto(comment);
-    }
-
-    @Override
-    public CommentDto updateComment(int userId, int commentId, NewCommentDto commentDto) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + commentId));
-        if (userId != comment.getAuthor().getId()) {
-            throw new ValidationException("Изменить комментарий может только пользователь, который его добавил.");
-        }
-        comment.setText(commentDto.getText());
-        comment.setUpdated(LocalDateTime.now());
-        return CommentMapper.toCommentDto(comment);
-    }
-
-    @Override
-    public void deleteComment(boolean isAdmin, Integer userId, int commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + commentId));
-        if (!isAdmin && !userId.equals(comment.getAuthor().getId())) {
-            throw new ValidationException("Удалить комментарий может только пользователь, который его добавил, " +
-                    "или администратор.");
-        }
-        commentRepository.delete(comment);
-    }
-
     private void checkData(LocalDateTime dateTime) {
         if (dateTime == null) return;
         if (dateTime.isBefore(LocalDateTime.now().plusHours(2))) {
@@ -380,9 +364,9 @@ public class EventServiceImpl implements EventService {
         return e2.getViews() > e1.getViews() ? 1 : -1;
     }
 
-    private Map<Integer, Long> findViewsForEvents(List<Event> events) {
-        List<String> urisForStatistic = events.stream()
-                .map(e -> "/events/" + e.getId())
+    private Map<Integer, Long> findViewsForEvents(List<Integer> eventIds) {
+        List<String> urisForStatistic = eventIds.stream()
+                .map(id -> "/events/" + id)
                 .collect(Collectors.toList());
         ViewStatsRequest request = new ViewStatsRequest(LocalDateTime.of(2024, 1, 1, 0, 0),
                 LocalDateTime.now(), urisForStatistic, true);
@@ -391,10 +375,7 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toMap(v -> Integer.valueOf(v.getUri().substring(8)), v -> v.getHits()));
     }
 
-    private Map<Integer, Long> findConfirmedRequestCount(List<Event> events) {
-        List<Integer> eventIds = events.stream()
-                .map(Event::getId)
-                .collect(Collectors.toList());
+    private Map<Integer, Long> findConfirmedRequestCount(List<Integer> eventIds) {
         List<ParticipationStat> participationStats = participationRequestRepository.findParticipationRequestStatistic(eventIds,
                 ParticipationRequestStatus.CONFIRMED);
         return participationStats.stream()

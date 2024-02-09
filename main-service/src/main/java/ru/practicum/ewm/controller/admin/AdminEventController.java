@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
+import ru.practicum.ewm.service.CommentService;
 import ru.practicum.ewm.service.EventService;
 
 import javax.validation.Valid;
@@ -24,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminEventController {
     private final EventService eventService;
+    private final CommentService commentService;
 
     @GetMapping
     public List<EventFullDto> searchEvents(@RequestParam(required = false) List<Integer> users,
@@ -62,7 +64,7 @@ public class AdminEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCommentByAdmin(@PathVariable("commentId") int commentId) {
         log.debug("Удаление комментария: {}.", commentId);
-        eventService.deleteComment(true, null, commentId);
+        commentService.deleteComment(true, null, commentId);
         log.debug("Комментарий удален.");
     }
 }

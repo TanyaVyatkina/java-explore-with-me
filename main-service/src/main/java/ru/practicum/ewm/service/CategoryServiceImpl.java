@@ -3,6 +3,7 @@ package ru.practicum.ewm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.dto.NewCategoryDto;
 import ru.practicum.ewm.entity.Category;
@@ -22,6 +23,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final EventRepository eventRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(PageRequest page) {
         List<Category> categories = categoryRepository.findAll(page).getContent();
         return categories.stream()
@@ -30,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CategoryDto getCategory(int catId) {
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Категория с id = " + catId + "не найдена."));
@@ -37,12 +40,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public CategoryDto saveCategoryByAdmin(NewCategoryDto newCat) {
         Category category = categoryRepository.save(CategoryMapper.toEntity(newCat));
         return CategoryMapper.toDto(category);
     }
 
     @Override
+    @Transactional
     public void deleteCategoryByAdmin(int categoryId) {
         checkExistence(categoryId);
         checkEventsExist(categoryId);
@@ -50,6 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public CategoryDto updateCategoryByAdmin(int categoryId, NewCategoryDto categoryDto) {
         Category category = checkExistence(categoryId);
         category.setName(categoryDto.getName());
