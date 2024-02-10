@@ -3,10 +3,7 @@ package ru.practicum.ewm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.ewm.dto.CommentDto;
-import ru.practicum.ewm.dto.EventState;
-import ru.practicum.ewm.dto.NewCommentDto;
-import ru.practicum.ewm.dto.ParticipationRequestStatus;
+import ru.practicum.ewm.dto.*;
 import ru.practicum.ewm.entity.Comment;
 import ru.practicum.ewm.entity.Event;
 import ru.practicum.ewm.entity.User;
@@ -68,13 +65,13 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public void deleteComment(boolean isAdmin, Integer userId, int commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + commentId));
+    public void deleteComment(DeleteCommentRequest request) {
+        Comment comment = commentRepository.findById(request.getCommentId())
+                .orElseThrow(() -> new NotFoundException("Не найден комментарий с id = " + request.getCommentId()));
         if (!EventState.PUBLISHED.equals(comment.getEvent().getState())) {
             throw new NotFoundException("Событие должно быть опубликовано.");
         }
-        if (!isAdmin && !userId.equals(comment.getAuthor().getId())) {
+        if (!request.isAdmin() && !request.getUserId().equals(comment.getAuthor().getId())) {
             throw new ValidationException("Удалить комментарий может только пользователь, который его добавил, " +
                     "или администратор.");
         }

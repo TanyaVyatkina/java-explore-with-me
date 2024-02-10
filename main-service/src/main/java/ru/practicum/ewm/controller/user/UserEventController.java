@@ -100,7 +100,8 @@ public class UserEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteComment(@PathVariable int userId, @PathVariable("commentId") int commentId) {
         log.debug("Удаление комментария: {}.", commentId);
-        commentService.deleteComment(false, userId, commentId);
+        DeleteCommentRequest request = new DeleteCommentRequest(commentId, false, userId);
+        commentService.deleteComment(request);
         log.debug("Комментарий удален.");
     }
 }

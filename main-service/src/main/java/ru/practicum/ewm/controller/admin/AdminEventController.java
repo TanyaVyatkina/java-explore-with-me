@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.ewm.dto.DeleteCommentRequest;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
@@ -64,7 +65,8 @@ public class AdminEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCommentByAdmin(@PathVariable("commentId") int commentId) {
         log.debug("Удаление комментария: {}.", commentId);
-        commentService.deleteComment(true, null, commentId);
+        DeleteCommentRequest request = new DeleteCommentRequest(commentId, true, null);
+        commentService.deleteComment(request);
         log.debug("Комментарий удален.");
     }
 }

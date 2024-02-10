@@ -1,6 +1,7 @@
 package ru.practicum.ewm.service;
 
 import ru.practicum.ewm.dto.CommentDto;
+import ru.practicum.ewm.dto.DeleteCommentRequest;
 import ru.practicum.ewm.dto.NewCommentDto;
 
 public interface CommentService {
@@ -8,5 +9,5 @@ public interface CommentService {
 
     CommentDto updateComment(int userId, int commentId, NewCommentDto commentDto);
 
-    void deleteComment(boolean isAdmin, Integer userId, int commentId);
+    void deleteComment(DeleteCommentRequest request);
 }
