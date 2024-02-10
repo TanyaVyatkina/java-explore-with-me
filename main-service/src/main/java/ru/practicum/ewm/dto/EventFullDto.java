@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,4 +25,5 @@ public class EventFullDto {
     private EventState state;
     private String title;
     private long views;
+    private List<CommentDto> comments;
 }

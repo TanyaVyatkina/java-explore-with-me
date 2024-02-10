@@ -3,11 +3,14 @@ package ru.practicum.ewm.controller.admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.ewm.dto.DeleteCommentRequest;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
+import ru.practicum.ewm.service.CommentService;
 import ru.practicum.ewm.service.EventService;
 
 import javax.validation.Valid;
@@ -23,6 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminEventController {
     private final EventService eventService;
+    private final CommentService commentService;
 
     @GetMapping
     public List<EventFullDto> searchEvents(@RequestParam(required = false) List<Integer> users,
@@ -55,5 +59,14 @@ public class AdminEventController {
         EventFullDto updatedEvent = eventService.updateEvent(eventId, request);
         log.debug("Изменения сохранены.");
         return updatedEvent;
+    }
+
+    @DeleteMapping("/comment/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCommentByAdmin(@PathVariable("commentId") int commentId) {
+        log.debug("Удаление комментария: {}.", commentId);
+        DeleteCommentRequest request = new DeleteCommentRequest(commentId, true, null);
+        commentService.deleteComment(request);
+        log.debug("Комментарий удален.");
     }
 }

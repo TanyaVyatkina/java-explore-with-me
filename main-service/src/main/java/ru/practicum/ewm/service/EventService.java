@@ -28,4 +28,5 @@ public interface EventService {
     List<ParticipationRequestDto> getUserEventRequests(int userId, int eventId);
 
     EventRequestStatusUpdateResult updateRequestsStatuses(int userId, int eventId, EventRequestStatusUpdateRequest request);
+
 }

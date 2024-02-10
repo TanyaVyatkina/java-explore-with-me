@@ -2,11 +2,13 @@ package ru.practicum.ewm.mapper;
 
 import ru.practicum.ewm.dto.*;
 import ru.practicum.ewm.entity.Category;
+import ru.practicum.ewm.entity.Comment;
 import ru.practicum.ewm.entity.Event;
 import ru.practicum.ewm.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,7 +21,7 @@ public class EventMapper {
         return shortDto;
     }
 
-    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequest) {
+    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequest, List<CommentDto> comments) {
         EventFullDto fullDto = toFullDtoWithoutViews(event);
         if (views != null) {
             fullDto.setViews(views);
@@ -27,6 +29,7 @@ public class EventMapper {
         if (confirmedRequest != null) {
             fullDto.setConfirmedRequests(confirmedRequest);
         }
+        fullDto.setComments(comments);
         return fullDto;
     }
 
@@ -49,15 +52,24 @@ public class EventMapper {
 
     public static List<EventFullDto> toFullDtoList(Collection<Event> events,
                                                    Map<Integer, Long> views,
-                                                   Map<Integer, Long> participationStats) {
+                                                   Map<Integer, Long> participationStats,
+                                                   Map<Integer, List<Comment>> comments) {
         List<EventFullDto> dtos = events.stream()
                 .map(event -> {
                     EventFullDto fullDto = toFullDtoWithoutViews(event);
                     int eventId = event.getId();
-                    if (participationStats.get(eventId) != null)
-                        fullDto.setConfirmedRequests(participationStats.get(eventId));
-                    if (views.get(eventId) != null)
-                        fullDto.setViews(views.get(event.getId()));
+                    Long confRequestCount = participationStats.get(eventId);
+                    if (confRequestCount != null)
+                        fullDto.setConfirmedRequests(confRequestCount);
+                    Long viewsCount = views.get(eventId);
+                    if (viewsCount != null)
+                        fullDto.setViews(viewsCount);
+                    List<Comment> eventComments = comments.get(eventId);
+                    if (eventComments != null) {
+                        fullDto.setComments(CommentMapper.toCommentDtoList(eventComments));
+                    } else {
+                        fullDto.setComments(Collections.emptyList());
+                    }
                     return fullDto;
                 })
                 .collect(Collectors.toList());

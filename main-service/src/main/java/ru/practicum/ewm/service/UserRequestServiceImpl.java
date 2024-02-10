@@ -2,6 +2,7 @@ package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.EventState;
 import ru.practicum.ewm.dto.ParticipationRequestDto;
 import ru.practicum.ewm.dto.ParticipationRequestStatus;
@@ -27,6 +28,7 @@ public class UserRequestServiceImpl implements UserRequestService {
     private final EventRepository eventRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserRequests(int userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Не найден пользователь с id = " + userId));
@@ -35,6 +37,7 @@ public class UserRequestServiceImpl implements UserRequestService {
     }
 
     @Override
+    @Transactional
     public ParticipationRequestDto addUserRequest(int userId, int eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Не найдено событие с id = " + eventId));
@@ -73,6 +76,7 @@ public class UserRequestServiceImpl implements UserRequestService {
     }
 
     @Override
+    @Transactional
     public ParticipationRequestDto cancelUserRequest(int userId, int requestId) {
         ParticipationRequest request = participationRequestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Не найден запрос с id = " + requestId));
